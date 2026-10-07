@@ -10,6 +10,14 @@ DevGuard observes; it does not remediate by default.
 - Backup credentials stay outside config (engine password file / OS mechanisms).
 - Failures surface as `unavailable` / warnings, never as clean.
 
+## Downstairs WSL helper
+
+`devguard remote` is off until the local config names an SSH host and user. Those values stay in that file and are not printed.
+
+The allowlist is host up or down, tunnel up or down, Ollama tags through the local forward, a fixed GPU sample, and a fixed fan sample (`devguard health fan` on the remote, when that command exists). If SSH has no route, status reports host down.
+
+The tunnel is an SSH local-forward to Ollama on `127.0.0.1` inside WSL. DevGuard does not bind `0.0.0.0`, open a public tunnel, run an arbitrary remote command, upload files, change firewall rules, or install a daemon. The operator opens the forward and closes it.
+
 ## SLM-specific
 
 - `model_dirs` are opt-in path inventories only.

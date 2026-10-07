@@ -55,3 +55,10 @@ capture_host = true
 sample_interval_seconds = 1
 default_backend = "llama.cpp"
 suggested_cooldown_seconds = 10
+
+# Downstairs WSL helper. Off until host and user are set in the local file
+# (this example leaves them unset). Do not commit a real host, user, or SSH port.
+# The Ollama forward is always 127.0.0.1 to 127.0.0.1.
+# [remote]
+# host = ""
+# user = ""
