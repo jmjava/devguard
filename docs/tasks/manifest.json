@@ -1,0 +1,4205 @@
+{
+  "schema_version": 2,
+  "project": "DevGuard",
+  "store": "docs/tasks",
+  "canonical_markdown": "docs/tasks/backlog-deep.md",
+  "priority_slice": "docs/tasks/backlog-50.md",
+  "synergies": "docs/tasks/SYNERGIES.md",
+  "updated_at": "2026-10-07T22:26:15Z",
+  "total": 399,
+  "done": 4,
+  "open": 395,
+  "sections": {
+    "A. Foundation (M0) \u2014 deepen & harden": {
+      "total": 20,
+      "done": 4,
+      "open": 16
+    },
+    "B. SLM collectors & research harness": {
+      "total": 41,
+      "done": 0,
+      "open": 41
+    },
+    "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)": {
+      "total": 15,
+      "done": 0,
+      "open": 15
+    },
+    "D. Synergy \u2014 jmjava/embabel-slm (research / paper)": {
+      "total": 15,
+      "done": 0,
+      "open": 15
+    },
+    "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)": {
+      "total": 12,
+      "done": 0,
+      "open": 12
+    },
+    "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator": {
+      "total": 10,
+      "done": 0,
+      "open": 10
+    },
+    "G. External ecosystem adapters (don't reinvent)": {
+      "total": 13,
+      "done": 0,
+      "open": 13
+    },
+    "H. Snapshot / upgrade guardian (M1) \u2014 deep": {
+      "total": 29,
+      "done": 0,
+      "open": 29
+    },
+    "I. Health & fan diagnostics (M2) \u2014 deep": {
+      "total": 18,
+      "done": 0,
+      "open": 18
+    },
+    "J. Security Sentinel (M3) \u2014 deep": {
+      "total": 19,
+      "done": 0,
+      "open": 19
+    },
+    "K. Backup Guardian (M4) \u2014 deep": {
+      "total": 19,
+      "done": 0,
+      "open": 19
+    },
+    "L. Developer Workflow Guardian (M5) \u2014 deep": {
+      "total": 15,
+      "done": 0,
+      "open": 15
+    },
+    "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep": {
+      "total": 17,
+      "done": 0,
+      "open": 17
+    },
+    "N. Cross-cutting quality, security, docs": {
+      "total": 16,
+      "done": 0,
+      "open": 16
+    },
+    "O. Academic paper metrics \u2014 granular fields": {
+      "total": 30,
+      "done": 0,
+      "open": 30
+    },
+    "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab": {
+      "total": 13,
+      "done": 0,
+      "open": 13
+    },
+    "Q. CLI surface \u2014 every command & flag": {
+      "total": 18,
+      "done": 0,
+      "open": 18
+    },
+    "R. Persistence, schemas, retention": {
+      "total": 16,
+      "done": 0,
+      "open": 16
+    },
+    "S. Threat model & redaction \u2014 deep": {
+      "total": 14,
+      "done": 0,
+      "open": 14
+    },
+    "T. Fixture catalog (tests/fixtures)": {
+      "total": 23,
+      "done": 0,
+      "open": 23
+    },
+    "U. Synergy execution playbooks": {
+      "total": 12,
+      "done": 0,
+      "open": 12
+    },
+    "V. Parked / future (explicitly deferred)": {
+      "total": 14,
+      "done": 0,
+      "open": 14
+    }
+  },
+  "tasks": [
+    {
+      "id": "T001",
+      "title": "Cargo workspace: devguard-cli + devguard-core",
+      "done": true,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T002",
+      "title": "CLI: help, doctor, config init|validate, status + JSON envelopes/exit codes",
+      "done": true,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T003",
+      "title": "TOML config validation, redaction helpers, CI fmt/clippy/test",
+      "done": true,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T004",
+      "title": "Literature map + SlmRunRecord schema/types",
+      "done": true,
+      "tags": [
+        "devguard",
+        "m0",
+        "slm"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T005",
+      "title": "Add CHANGELOG.md with Keep-a-Changelog format",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T006",
+      "title": "Add CONTRIBUTING.md with SPEC \u00a711 Cursor milestone workflow",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T007",
+      "title": "Add CODE_OF_CONDUCT / SECURITY.md disclosure process",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T008",
+      "title": "Decision: restic vs rustic as sole M4 engine",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T009",
+      "title": "Decision: SQLite vs JSON-file snapshots for M1 persistence",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T010",
+      "title": "Decision: credential mechanism (password-file vs FD vs keyring)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T011",
+      "title": "Pin MSRV in CI matrix (1.85 + stable)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T012",
+      "title": "Add cargo deny / audit job for supply-chain",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T013",
+      "title": "Document exit codes 0/1/2/3/64 in --help and man-style docs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T014",
+      "title": "Structured tracing fields with redaction layer on Display",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T015",
+      "title": "Config schema_version migration stub (v1 only, tested)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T016",
+      "title": "XDG path override tests for --config and custom state dir",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T017",
+      "title": "Refuse world-writable config files with clear error",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T018",
+      "title": "Doctor JSON schema fixture in docs/schemas/",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T019",
+      "title": "Smoke script scripts/smoke_m0.sh for offline Ubuntu",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T020",
+      "title": "README quickstart GIF/asciinema via docgen synergy later",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 deepen & harden"
+    },
+    {
+      "id": "T021",
+      "title": "NVIDIA collector: name, UUID hash, driver, CUDA version if readable",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T022",
+      "title": "NVIDIA collector: utilization.gpu / utilization.memory %",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T023",
+      "title": "NVIDIA collector: memory.used / memory.total bytes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T024",
+      "title": "NVIDIA collector: temperature.gpu \u00b0C",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T025",
+      "title": "NVIDIA collector: power.draw / power.limit watts",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T026",
+      "title": "NVIDIA collector: clocks.sm / clocks.mem MHz when available",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T027",
+      "title": "NVIDIA collector: fan.speed % if exposed",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T028",
+      "title": "NVIDIA collector: ecc / throttling reasons when readable",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T029",
+      "title": "Multi-GPU enumeration with stable index ordering",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T030",
+      "title": "Host sample: loadavg 1/5/15",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T031",
+      "title": "Host sample: CPU percent (sysinfo)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T032",
+      "title": "Host sample: memory used/total/available + swap",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T033",
+      "title": "Host sample: disk free/total for model_dirs mount points",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T034",
+      "title": "Host sample: top-N processes filtered by slm.process_name_hints",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T035",
+      "title": "Mark CollectionStatus Unavailable when nvidia-smi missing",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T036",
+      "title": "Timeouts + bounded stdout capture for all nvidia-smi calls",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T037",
+      "title": "Fixture parsers from sanitized nvidia-smi CSV",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T038",
+      "title": "devguard gpu scan --json one-shot",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T039",
+      "title": "devguard health scan includes GPU block when capture_gpu",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T040",
+      "title": "devguard slm run begin --label --backend --model",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T041",
+      "title": "devguard slm run sample (manual mid-run sample)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T042",
+      "title": "devguard slm run end --annotations path.json",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T043",
+      "title": "Background sampler thread/process with interval from config",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T044",
+      "title": "Persist run under ~/.local/state/devguard/slm-runs/<id>/",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T045",
+      "title": "Write run.json + samples.jsonl per run",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T046",
+      "title": "Ingest harness annotations: ttft/tpot p50/p99",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T047",
+      "title": "Ingest harness annotations: prompt/output tokens, batch, ctx",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T048",
+      "title": "Ingest harness annotations: quantization, backend, git_commit",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T049",
+      "title": "Ingest quality: task_name, metric, score",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T050",
+      "title": "Derive energy_gpu_approx_j from mean power \u00d7 duration",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T051",
+      "title": "Derive joules_per_token / tokens_per_joule / throughput_per_watt",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T052",
+      "title": "Label measurement_plane gpu_rail|wall_ac|mixed|unknown",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T053",
+      "title": "Optional energy_wall_j field from external meter file",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T054",
+      "title": "devguard slm list [--json]",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T055",
+      "title": "devguard slm show <run_id> [--json]",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T056",
+      "title": "devguard slm export --format csv|json|markdown",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T057",
+      "title": "Export columns match academic 10-field checklist",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T058",
+      "title": "Cool-down reminder using suggested_cooldown_seconds",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T059",
+      "title": "Reject incomplete cells when --strict-paper flag set",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T060",
+      "title": "Unit tests for energy derivation edge cases (zero duration/tokens)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T061",
+      "title": "Integration: mock nvidia-smi script on PATH",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM collectors & research harness"
+    },
+    {
+      "id": "T062",
+      "title": "Document adapter: wrap prove_acceptance.py with slm run begin/end",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T063",
+      "title": "Parse slm-setup harness JSONL into ExperimentMeta + LatencyMetrics",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T064",
+      "title": "Map OLLAMA_BASE_URL safety: refuse public endpoints (align check_deployment_safety)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T065",
+      "title": "Process hints include ollama + model runner names from slm-setup",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T066",
+      "title": "Capture metrics during scripts/run_harness.py live backend profile",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T067",
+      "title": "Capture metrics during prove_refactor_acceptance fast/strong models",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T068",
+      "title": "Tag runs with eval profile: observed|golden|stub",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T069",
+      "title": "Correlate transport/format/structure/behavior scores with J/token",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T070",
+      "title": "Downstairs WSL-GPU host profile example (SSH forward) in docs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T071",
+      "title": "Halo Ryzen AI host profile placeholders for future AMD collector",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T072",
+      "title": "Shared threat model: no public Ollama, no remote shell in DevGuard agent",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "m7"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T073",
+      "title": "Example config snippet linking model_dirs to Ollama model store",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T074",
+      "title": "CI note: GPU metrics only on workstation; fixtures offline",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T075",
+      "title": "Cross-link evaluation-protocol.md metrics to SlmRunRecord.quality",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T076",
+      "title": "Script: scripts/synergy_slm_setup_bracket.sh template",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "slm"
+      ],
+      "section": "C. Synergy \u2014 jmjava/slm-setup (Ollama MCP bridge)"
+    },
+    {
+      "id": "T077",
+      "title": "Align export schema with embabel-slm paper table needs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T078",
+      "title": "Support experiment cells: base vs retrieval vs LoRA labels",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T079",
+      "title": "Pin official Ollama tags only in example configs (per standing rules)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T080",
+      "title": "Never commit weights; inventory model_dirs sizes only",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T081",
+      "title": "Record git_commit + experiment dir path (refuse overwrite semantics)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T082",
+      "title": "Pareto plot data export (accuracy vs J/token) as JSON for paper figs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T083",
+      "title": "Zenodo/TechRxiv artifact packing checklist in docs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T084",
+      "title": "Citation workflow: store BibTeX keys used for metric definitions",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T085",
+      "title": "Holdout-task runs tagged separately from training-split runs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T086",
+      "title": "Compiler-accepted vs rejected generation outcome as quality metric",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T087",
+      "title": "Spring/Kotlin pattern-card eval latency capture",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T088",
+      "title": "Paper calendar milestones mapped to DevGuard export readiness",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T089",
+      "title": "Document measurement_plane honesty for preprint methods section",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T090",
+      "title": "Template methods paragraph for GPU-rail energy estimation",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T091",
+      "title": "Compare qwen3.5:9b vs devstral-small-2 efficiency cells",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "slm"
+      ],
+      "section": "D. Synergy \u2014 jmjava/embabel-slm (research / paper)"
+    },
+    {
+      "id": "T092",
+      "title": "Vault note sync path for docs/tasks/backlog-deep.md",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T093",
+      "title": "MCP reload recipe: read manifest.json into vault AI Memory",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T094",
+      "title": "After slm run end \u2192 capture_work_session template fields",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T095",
+      "title": "record_decision templates for DevGuard open design questions",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T096",
+      "title": "get_project_context('devguard') starter note content",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T097",
+      "title": "Tag taxonomy shared:*",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp",
+        "m0-",
+        "m7",
+        "slm",
+        "synergy/"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T098",
+      "title": "Dataview queries committed beside backlog",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T099",
+      "title": "Tasks plugin queries for not-done",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp",
+        "slm"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T100",
+      "title": "Export STATUS.md into vault dashboard note",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T101",
+      "title": "Document OBSIDIAN_VAULT_PATH usage without requiring Obsidian running",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T102",
+      "title": "Script to push completed task IDs from git to vault",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T103",
+      "title": "Avoid secrets in vault notes (align redaction)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp"
+      ],
+      "section": "E. Synergy \u2014 jmjava/obsidian-mcp (vault memory)"
+    },
+    {
+      "id": "T104",
+      "title": "Create SPDD Work ID canvas for DevGuard M1 slice",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/sdlc-spdd"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T105",
+      "title": "Create SPDD Work ID canvas for SLM metrics vertical",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/sdlc-spdd"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T106",
+      "title": "Map SPEC milestones to ROADMAP.md style ledger entries",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/sdlc-spdd"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T107",
+      "title": "Capture pitfalls from failed collectors into lessons.jsonl shape",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/sdlc-spdd"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T108",
+      "title": "Quiet-mode note when dogfooding SDLC on DevGuard itself",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/sdlc-spdd"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T109",
+      "title": "docgen scene outline: doctor \u2192 gpu scan \u2192 slm export",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/docgen"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T110",
+      "title": "docgen scene outline: snapshot pre/post upgrade diff",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/docgen"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T111",
+      "title": "Narrated demo script Markdown for academic metrics walkthrough",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/docgen"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T112",
+      "title": "PlantUML/C4 snippet linking DevGuard + slm-setup + embabel-slm",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/docgen"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T113",
+      "title": "Publish demo to GitHub Pages when ready",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/docgen"
+      ],
+      "section": "F. Synergy \u2014 sdlc-spdd-orchestrator & documentation-generator"
+    },
+    {
+      "id": "T114",
+      "title": "Import adapter: llama-bench JSON \u2192 LatencyMetrics (pp/tg/pg)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T115",
+      "title": "Document llama-bench gap: no TTFT/VRAM/energy \u2014 DevGuard fills",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T116",
+      "title": "Optional vLLM /metrics scrape during slm run (TTFT/TPOT histograms)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T117",
+      "title": "Document Zeus window API as preferred energy when Python harness uses it",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T118",
+      "title": "Ingest Zeus/NVML joules as energy_wall_j or energy_gpu when labeled",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T119",
+      "title": "DCGM field mapping doc (power, util, mem, energy counter)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T120",
+      "title": "Interop CSV with llm-inference-benchmark columns",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T121",
+      "title": "Interop notes for LLenergyMeasure study exports",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T122",
+      "title": "MLPerf metric naming alignment (TTFT/TPOT p99, tokens/s)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T123",
+      "title": "CodeCarbon optional annotation path (not default)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T124",
+      "title": "RAPL CPU energy optional on Linux when readable",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T125",
+      "title": "Prometheus export sketch (opt-in, off by default \u2014 SPEC no listeners)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T126",
+      "title": "Explicit decision: file/JSONL export first, no daemon metrics port in MVP",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "ecosystem"
+      ],
+      "section": "G. External ecosystem adapters (don't reinvent)"
+    },
+    {
+      "id": "T127",
+      "title": "Introduce crate devguard-store with rusqlite bundled",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T128",
+      "title": "Migrations: runs, observations, snapshots, findings tables",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T129",
+      "title": "Retention config + dry-run cleanup command",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T130",
+      "title": "Run status enum: complete|partial|failed per provider",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T131",
+      "title": "Collector trait wired for host inventory",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T132",
+      "title": "OS release/version/arch collector (/etc/os-release)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T133",
+      "title": "Kernel version + boot_id collector",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T134",
+      "title": "Uptime collector",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T135",
+      "title": "Hostname hash (privacy-preserving, stable)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T136",
+      "title": "APT package list parser (dpkg-query) with fixtures",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T137",
+      "title": "Pending updates collector when readable without root magic",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T138",
+      "title": "Optional Snap list collector (Unavailable if missing)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T139",
+      "title": "systemctl list-units enabled/running/failed parsers",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T140",
+      "title": "ss -lntup parser; missing process attribution flag",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T141",
+      "title": "NVIDIA driver/GPU summary in snapshot (reuse SLM collector)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T142",
+      "title": "PCI devices of interest filter",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T143",
+      "title": "Loaded kernel modules names collector",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T144",
+      "title": "Toolchain version probes: rustc cargo gcc clang java python node git docker",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T145",
+      "title": "Config allowlist hashing (blake3/sha256) metadata only",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T146",
+      "title": "snapshot create --label pre-upgrade|post-upgrade",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T147",
+      "title": "snapshot list --json",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T148",
+      "title": "snapshot diff deterministic ordering",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T149",
+      "title": "Diff categories: added|removed|changed with severity hints",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T150",
+      "title": "Fixture: simulated Ubuntu upgrade kernel+driver+port+package",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T151",
+      "title": "Fixture: permission denied \u2192 Partial not clean",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T152",
+      "title": "Fixture: tool missing \u2192 Unavailable coverage",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T153",
+      "title": "status command shows latest snapshot timestamps",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T154",
+      "title": "JSON schema for snapshot documents",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T155",
+      "title": "Bench: typical snapshot finishes in seconds on healthy host",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "H. Snapshot / upgrade guardian (M1) \u2014 deep"
+    },
+    {
+      "id": "T156",
+      "title": "Crate devguard-health",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T157",
+      "title": "sysinfo CPU/memory/disk/process collection",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T158",
+      "title": "Redact sensitive argv in top processes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T159",
+      "title": "lm-sensors adapter parse chips/temps/fans",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T160",
+      "title": "Distinguish CPU/package/board/GPU fan labels",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T161",
+      "title": "health scan human + JSON",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T162",
+      "title": "health watch TUI with ratatui + crossterm",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T163",
+      "title": "health watch interval bounds + Ctrl+C cleanup",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T164",
+      "title": "No background service/daemon in watch mode",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T165",
+      "title": "Threshold warnings from health.warn_* config",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T166",
+      "title": "Fan-regression report template (observations vs hypotheses)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T167",
+      "title": "Include failed systemd units in fan-regression context",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T168",
+      "title": "Include kernel + NVIDIA driver in fan-regression context",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T169",
+      "title": "Tests: no sensors binary \u2192 Unavailable",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T170",
+      "title": "Tests: no NVIDIA \u2192 Unavailable GPU block",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T171",
+      "title": "Document non-sudo ordinary scanning",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T172",
+      "title": "Optional I/O wait stats when /proc provides",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T173",
+      "title": "Thermal throttle detection note when nvml throttling present",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "I. Health & fan diagnostics (M2) \u2014 deep"
+    },
+    {
+      "id": "T174",
+      "title": "Crate devguard-security",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T175",
+      "title": "Finding model: severity info|warning|critical|unknown + source/confidence",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T176",
+      "title": "Rule docs for every finding id",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T177",
+      "title": "Listening port drift vs baseline",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T178",
+      "title": "Service enablement drift vs baseline",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T179",
+      "title": "ufw status parser",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T180",
+      "title": "nftables detection without claiming full audit",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T181",
+      "title": "SSH config readable checks (PermitRootLogin etc.)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T182",
+      "title": "SSH exposure: listening 22 on non-localhost",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T183",
+      "title": "journalctl/auth log adapter for failed logins (bounded)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T184",
+      "title": "Never copy credentials or full journal payloads",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T185",
+      "title": "Ubuntu security update status interfaces",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T186",
+      "title": "Never auto-install updates",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T187",
+      "title": "Allowlisted path permission checks",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T188",
+      "title": "security scan / diff / findings CLI",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T189",
+      "title": "Fixtures: normal drift vs actionable warning",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T190",
+      "title": "Fixtures: missing perms \u2260 clean",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T191",
+      "title": "Unfamiliar process is NOT malware proof (document)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T192",
+      "title": "Opt-in dependency audit hook deferred to M5",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "J. Security Sentinel (M3) \u2014 deep"
+    },
+    {
+      "id": "T193",
+      "title": "Crate devguard-backup",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T194",
+      "title": "Engine trait with restic OR rustic implementation (one first)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T195",
+      "title": "Version pin + detect unsupported engine versions",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T196",
+      "title": "Credential via password file / FD only; test no argv leakage",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T197",
+      "title": "backup plan dry-run JSON",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T198",
+      "title": "Warn on excluded huge models (gguf/bin/models/**)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T199",
+      "title": "Warn on unreadable includes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T200",
+      "title": "backup run against configured repository only",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T201",
+      "title": "backup list snapshots",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T202",
+      "title": "backup verify metadata|sample|full modes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T203",
+      "title": "Record backup_jobs + backup_verifications tables",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T204",
+      "title": "restore --dry-run default path",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T205",
+      "title": "restore --apply requires confirmation",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T206",
+      "title": "Block path traversal and symlink escape",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T207",
+      "title": "Refuse dangerous destinations (/, /etc, $HOME bare)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T208",
+      "title": "Integration test synthetic dir hash roundtrip",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T209",
+      "title": "forget/prune explicitly NOT automatic (future feature flag)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T210",
+      "title": "Runbook offsite/immutable media + restore drills",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T211",
+      "title": "Include DevGuard DB in recovery design notes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "K. Backup Guardian (M4) \u2014 deep"
+    },
+    {
+      "id": "T212",
+      "title": "Crate devguard-dev",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T213",
+      "title": "dev env inventory compilers/SDKs/package managers",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T214",
+      "title": "Reproducibility report language (not bit-identical claim)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T215",
+      "title": "Scan repo_roots for git repos safely (no shell interpolation)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T216",
+      "title": "Detect dirty worktree / untracked / branch / upstream",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T217",
+      "title": "Detect unpushed commits without network fetch by default",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T218",
+      "title": "dev repos scan --json",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T219",
+      "title": "Opt-in cargo audit adapter",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T220",
+      "title": "Opt-in npm audit adapter",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T221",
+      "title": "Opt-in Python audit adapter",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T222",
+      "title": "Opt-in Maven/Gradle scanner stub",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T223",
+      "title": "allow_network_audits gate enforced",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T224",
+      "title": "Redact token-like strings in logs (fixture test)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T225",
+      "title": "Reuse inventory in snapshot diffs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T226",
+      "title": "Synergy: flag embabel-slm / slm-setup / docgen dirty repos in multi-root scan",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "L. Developer Workflow Guardian (M5) \u2014 deep"
+    },
+    {
+      "id": "T227",
+      "title": "systemd --user timer unit templates (opt-in)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T228",
+      "title": "Document how to disable timers completely",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T229",
+      "title": "No privileged system daemon",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T230",
+      "title": "Local alert: write report file under state dir",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T231",
+      "title": "Optional desktop notification if tool present",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T232",
+      "title": "DB retention cleanup --dry-run then --apply",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T233",
+      "title": "Idle overhead benchmark script + results doc",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T234",
+      "title": "Packaging notes (cargo install / distro later)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T235",
+      "title": "Release checklist + signed tags process",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T236",
+      "title": "Multi-node architecture PoC doc only first",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T237",
+      "title": "Threat model review before any listener",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T238",
+      "title": "mTLS + peer allowlist design",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T239",
+      "title": "Allowlisted metrics API (CPU/GPU/VRAM/temp/disk)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T240",
+      "title": "Explicitly no remote shell interface",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T241",
+      "title": "SSH user-initiated collection alternative (no agent)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T242",
+      "title": "AMD ROCm/Halo adapter spike after NVIDIA stable",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T243",
+      "title": "Align Halo host profile with slm-setup examples/halo-ryzen-ai.md",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7",
+        "synergy/slm-setup"
+      ],
+      "section": "M. Ops hardening & multi-node (M6\u2013M7) \u2014 deep"
+    },
+    {
+      "id": "T244",
+      "title": "Every milestone: unit tests for parsers/diff/path handling",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T245",
+      "title": "Sanitized fixtures; no dependence on personal hardware in CI",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T246",
+      "title": "Integration tests in disposable dirs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T247",
+      "title": "Manual acceptance commands documented with actual results",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T248",
+      "title": "Permissions + prerequisites + rollback docs per command",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T249",
+      "title": "Update SPEC decision log when interfaces change",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T250",
+      "title": "JSON determinism tests excluding timestamps/ids",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T251",
+      "title": "Property tests for redaction (secrets never leak)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T252",
+      "title": "Fuzz parsers for ss/sensors/nvidia-smi CSV",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T253",
+      "title": "Clippy -D warnings enforced in CI",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T254",
+      "title": "cargo fmt --check in CI",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T255",
+      "title": "Coverage report optional job",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T256",
+      "title": "SBOM generation for releases",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T257",
+      "title": "Reproducible builds notes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T258",
+      "title": "Accessibility of human CLI output (no emoji reliance)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T259",
+      "title": "Internationalization: keep English MVP; avoid hard-coded locale assumes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "quality"
+      ],
+      "section": "N. Cross-cutting quality, security, docs"
+    },
+    {
+      "id": "T260",
+      "title": "Field: model_id stable string",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T261",
+      "title": "Field: parameter_count integer",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T262",
+      "title": "Field: quantization enum/string (Q4_K_M, Q8_0, fp16, \u2026)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T263",
+      "title": "Field: backend enum (ollama, llama.cpp, vllm, hf, other)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T264",
+      "title": "Field: batch_size",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T265",
+      "title": "Field: context_length / n_ctx",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T266",
+      "title": "Field: prompt_tokens / output_tokens",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T267",
+      "title": "Field: ttft_ms mean",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T268",
+      "title": "Field: ttft_p50_ms / ttft_p99_ms",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T269",
+      "title": "Field: tpot_ms mean",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T270",
+      "title": "Field: tpot_p50_ms / tpot_p99_ms",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T271",
+      "title": "Field: e2e_latency_ms",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T272",
+      "title": "Field: tokens_per_second + throughput_kind",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T273",
+      "title": "Field: peak_vram_bytes / peak_host_rss_bytes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T274",
+      "title": "Field: mean_gpu_power_w / max_gpu_power_w",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T275",
+      "title": "Field: energy_gpu_approx_j / joules_per_token / tokens_per_joule",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T276",
+      "title": "Field: throughput_per_watt",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T277",
+      "title": "Field: energy_delay_product optional",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T278",
+      "title": "Field: mean/max gpu_temperature_c",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T279",
+      "title": "Field: task_name / task_metric / task_score / higher_is_better",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T280",
+      "title": "Field: repetitions + stddev for llama-bench style averages",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T281",
+      "title": "Field: cool_down_seconds_observed",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T282",
+      "title": "Field: power_mode / n_gpu_layers / flash_attn flags",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T283",
+      "title": "Field: dataset_id / prompt_suite for ShareGPT-style loads",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T284",
+      "title": "Validate required fields for --paper-ready export mode",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T285",
+      "title": "Markdown table renderer matching embabel-slm paper outline",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T286",
+      "title": "BibTeX keys for Lu2024, Wang2025, MLENERGY, MLPerf in docs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T287",
+      "title": "Methods boilerplate: GPU-rail vs wall-AC disclaimer",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T288",
+      "title": "Pareto CSV: task_score vs joules_per_token",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T289",
+      "title": "Ablation export: vary quant holding model/backend fixed",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm",
+        "paper"
+      ],
+      "section": "O. Academic paper metrics \u2014 granular fields"
+    },
+    {
+      "id": "T290",
+      "title": "Document target: Ubuntu 26.04 x86_64 primary",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T291",
+      "title": "Document hardware profile: ASUS PRIME Z490-P + RTX 3060",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T292",
+      "title": "Doctor check: NVIDIA driver present for 3060 class",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T293",
+      "title": "Fan-regression runbook for this chassis (SPEC special prompt)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T294",
+      "title": "Collect motherboard/case fan RPM labels when sensors expose",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T295",
+      "title": "Collect GPU fan separately from chassis fans",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T296",
+      "title": "Note BIOS fan curve out of scope (read-only)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T297",
+      "title": "smartctl optional disk health (Unavailable without perms)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T298",
+      "title": "Confirm package availability list for Ubuntu 26.04 tools",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T299",
+      "title": "Secondary distro notes (Debian/Fedora) as adapter isolations",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T300",
+      "title": "WSL2 GPU caveats doc (synergy downstairs-wsl-gpu)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T301",
+      "title": "Resource limits: subprocess timeouts defaults table",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T302",
+      "title": "Bounded memory for large apt inventory diffs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "host"
+      ],
+      "section": "P. Workstation profile \u2014 Ubuntu & ASUS/RTX lab"
+    },
+    {
+      "id": "T303",
+      "title": "Global --config path",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T304",
+      "title": "Global --json stdout contract",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T305",
+      "title": "doctor human formatting polish",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T306",
+      "title": "status shows last slm run + last snapshot",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T307",
+      "title": "config init --force behavior tested",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T308",
+      "title": "config validate warnings \u2192 exit 3",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T309",
+      "title": "snapshot create/list/diff help texts: mutates? privileges?",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T310",
+      "title": "health scan/watch help texts",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T311",
+      "title": "gpu scan help texts",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T312",
+      "title": "security scan/diff/findings help texts",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T313",
+      "title": "backup plan/run/list/verify/restore help texts",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T314",
+      "title": "dev env/repos/deps help texts",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T315",
+      "title": "slm run begin/end/list/show/export help texts",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T316",
+      "title": "Shell completions: bash/zsh/fish via clap",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T317",
+      "title": "man page generation optional",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T318",
+      "title": "Cancelation: Ctrl+C kills child processes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T319",
+      "title": "--include-paths documented opt-in only",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T320",
+      "title": "Color vs NO_COLOR policy",
+      "done": false,
+      "tags": [
+        "devguard",
+        "cli"
+      ],
+      "section": "Q. CLI surface \u2014 every command & flag"
+    },
+    {
+      "id": "T321",
+      "title": "SQLite PRAGMA foreign_keys + WAL mode",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T322",
+      "title": "Migration version table",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T323",
+      "title": "runs table columns + indexes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T324",
+      "title": "observations table blob/json columns",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T325",
+      "title": "snapshots table + labels unique per host",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T326",
+      "title": "findings table + severity index",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T327",
+      "title": "backup_jobs / backup_verifications tables",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T328",
+      "title": "slm_runs table or filesystem layout decision",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T329",
+      "title": "Export DB to JSON for offline analysis",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T330",
+      "title": "Import fixtures into DB for demo",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T331",
+      "title": "Schema evolution tests backward compatible",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T332",
+      "title": "JSON Schema files for all envelopes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T333",
+      "title": "Retention dry-run lists deletable run ids",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T334",
+      "title": "Vacuum after retention apply",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T335",
+      "title": "DB file mode 0600",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T336",
+      "title": "Backup of SQLite itself in recovery design",
+      "done": false,
+      "tags": [
+        "devguard",
+        "store"
+      ],
+      "section": "R. Persistence, schemas, retention"
+    },
+    {
+      "id": "T337",
+      "title": "Never log GITHUB_TOKEN / API keys (tests)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T338",
+      "title": "Redact user:pass@ in URLs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T339",
+      "title": "Redact password=/token= assignments",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T340",
+      "title": "Treat filenames as data; no shell interpolation",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T341",
+      "title": "Canonicalize restore paths; reject escapes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T342",
+      "title": "Baseline DB local integrity notes (later signed digest)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T343",
+      "title": "No listening sockets by default (assert in tests)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T344",
+      "title": "Missing sensor \u2260 healthy (property across collectors)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T345",
+      "title": "Path allowlists for hashing only",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T346",
+      "title": "model_dirs inventory never uploads weights",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T347",
+      "title": "Process cmdline truncation + redaction",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T348",
+      "title": "SSH log adapter strips hashes carefully / limits lines",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T349",
+      "title": "Document threat table from SPEC \u00a78 in security-model.md expansion",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T350",
+      "title": "Dependency pin review for clap/serde/rusqlite",
+      "done": false,
+      "tags": [
+        "devguard",
+        "security"
+      ],
+      "section": "S. Threat model & redaction \u2014 deep"
+    },
+    {
+      "id": "T351",
+      "title": "nvidia-smi CSV: single GPU happy path",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T352",
+      "title": "nvidia-smi CSV: multi GPU",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T353",
+      "title": "nvidia-smi: command not found",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T354",
+      "title": "nvidia-smi: permission / driver mismatch stderr",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T355",
+      "title": "sensors: typical desktop chips",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T356",
+      "title": "sensors: empty / missing",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T357",
+      "title": "ss -lntup: with and without process fields",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T358",
+      "title": "systemctl: failed units present",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T359",
+      "title": "os-release Ubuntu 26.04 sample",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T360",
+      "title": "dpkg-query truncated package list",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T361",
+      "title": "upgrade-diff: kernel change",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T362",
+      "title": "upgrade-diff: NVIDIA driver change",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T363",
+      "title": "upgrade-diff: new listening port",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T364",
+      "title": "upgrade-diff: package add/remove",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T365",
+      "title": "git status porcelain dirty/untracked",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T366",
+      "title": "git rev-list unpushed",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T367",
+      "title": "restic snapshots JSON",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T368",
+      "title": "ufw status verbose",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T369",
+      "title": "auth.log failed ssh samples sanitized",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T370",
+      "title": "slm harness annotations complete/partial",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T371",
+      "title": "llama-bench JSON import sample",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T372",
+      "title": "vLLM metrics text exposition sample",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T373",
+      "title": "token-like strings for redaction tests",
+      "done": false,
+      "tags": [
+        "devguard",
+        "fixtures"
+      ],
+      "section": "T. Fixture catalog (tests/fixtures)"
+    },
+    {
+      "id": "T374",
+      "title": "Playbook: live Ollama accept + DevGuard bracket on same host",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T375",
+      "title": "Playbook: SSH-forwarded downstairs GPU + local DevGuard doctor",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T376",
+      "title": "Playbook: one paper cell end-to-end (run \u2192 export \u2192 table)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T377",
+      "title": "Playbook: base vs retrieval efficiency comparison week",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/embabel-slm",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T378",
+      "title": "Playbook: import deep backlog into vault AI Memory",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T379",
+      "title": "Playbook: weekly STATUS.md sync + decision capture",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/obsidian-mcp",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T380",
+      "title": "Playbook: open Work ID for next SLM collector slice",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/sdlc-spdd",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T381",
+      "title": "Playbook: record 3-minute metrics demo video",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/docgen",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T382",
+      "title": "Playbook: correlate eval scores with J/token across models",
+      "done": false,
+      "tags": [
+        "devguard",
+        "synergy/slm-setup",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T383",
+      "title": "Playbook: pre-Ubuntu-upgrade snapshot ritual",
+      "done": false,
+      "tags": [
+        "devguard",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T384",
+      "title": "Playbook: fan-regression data capture without changing BIOS",
+      "done": false,
+      "tags": [
+        "devguard",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T385",
+      "title": "Playbook: backup restore drill quarterly",
+      "done": false,
+      "tags": [
+        "devguard",
+        "playbook"
+      ],
+      "section": "U. Synergy execution playbooks"
+    },
+    {
+      "id": "T386",
+      "title": "Windows agent parity",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T387",
+      "title": "macOS sensors / powermetrics adapter",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T388",
+      "title": "Automatic remediation (NEVER in MVP \u2014 keep parked)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T389",
+      "title": "Always-on privileged daemon (rejected)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T390",
+      "title": "Cloud control plane (rejected)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T391",
+      "title": "Homemade backup cryptosystem (rejected)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T392",
+      "title": "Full EDR / packet inspection (rejected)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T393",
+      "title": "Signed baseline digests phase 2",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T394",
+      "title": "Keyring-backed restic passwords",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T395",
+      "title": "Grafana dashboard from exported JSONL",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T396",
+      "title": "ROCm collector productionization",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T397",
+      "title": "Jetson / edge power-mode locking helpers",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T398",
+      "title": "Multi-node Halo cluster authenticated agent",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    },
+    {
+      "id": "T399",
+      "title": "Training FLOPs accounting (leave to embabel-slm)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "future"
+      ],
+      "section": "V. Parked / future (explicitly deferred)"
+    }
+  ]
+}

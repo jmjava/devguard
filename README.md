@@ -43,6 +43,19 @@ warn_gpu_temp_c = 85
 warn_gpu_mem_percent = 90
 ```
 
+## Task backlog (reloadable)
+
+Canonical Obsidian/MCP task store: [`docs/tasks/`](docs/tasks/)
+
+```bash
+python3 scripts/generate_task_backlog.py   # regenerate deep backlog
+./docs/tasks/reload.sh                     # verify counts
+# deep:      docs/tasks/backlog-deep.md
+# priority:  docs/tasks/backlog-50.md
+# synergies: docs/tasks/SYNERGIES.md
+# machine:   docs/tasks/manifest.json
+```
+
 ## Develop
 
 ```bash
