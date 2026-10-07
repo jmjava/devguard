@@ -1,0 +1,604 @@
+{
+  "schema_version": 1,
+  "project": "DevGuard",
+  "store": "docs/tasks",
+  "canonical_markdown": "docs/tasks/backlog-50.md",
+  "updated_at": "2026-10-07T22:23:07Z",
+  "total": 50,
+  "done": 4,
+  "open": 46,
+  "sections": {
+    "A. Foundation (M0) \u2014 5": {
+      "total": 5,
+      "done": 3,
+      "open": 2
+    },
+    "B. SLM research metrics (priority) \u2014 9": {
+      "total": 9,
+      "done": 1,
+      "open": 8
+    },
+    "C. Snapshot / upgrade guardian (M1) \u2014 10": {
+      "total": 10,
+      "done": 0,
+      "open": 10
+    },
+    "D. Health & fan diagnostics (M2) \u2014 6": {
+      "total": 6,
+      "done": 0,
+      "open": 6
+    },
+    "E. Security Sentinel (M3) \u2014 6": {
+      "total": 6,
+      "done": 0,
+      "open": 6
+    },
+    "F. Backup Guardian (M4) \u2014 6": {
+      "total": 6,
+      "done": 0,
+      "open": 6
+    },
+    "G. Developer Workflow Guardian (M5) \u2014 4": {
+      "total": 4,
+      "done": 0,
+      "open": 4
+    },
+    "H. Ops & multi-node (M6\u2013M7) \u2014 4": {
+      "total": 4,
+      "done": 0,
+      "open": 4
+    }
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Cargo workspace: `devguard-cli` + `devguard-core`",
+      "done": true,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 5",
+      "raw": "- [x] #devguard #m0 Cargo workspace: `devguard-cli` + `devguard-core`"
+    },
+    {
+      "id": "T02",
+      "title": "CLI: `--help`, `doctor`, `config init|validate`, `status` + JSON envelopes/exit codes",
+      "done": true,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 5",
+      "raw": "- [x] #devguard #m0 CLI: `--help`, `doctor`, `config init|validate`, `status` + JSON envelopes/exit codes"
+    },
+    {
+      "id": "T03",
+      "title": "TOML config validation, redaction helpers, CI (fmt/clippy/test)",
+      "done": true,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 5",
+      "raw": "- [x] #devguard #m0 TOML config validation, redaction helpers, CI (fmt/clippy/test)"
+    },
+    {
+      "id": "T04",
+      "title": "Changelog + CONTRIBUTING with SPEC \u00a711 Cursor milestone workflow",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 5",
+      "raw": "- [ ] #devguard #m0 Changelog + CONTRIBUTING with SPEC \u00a711 Cursor milestone workflow"
+    },
+    {
+      "id": "T05",
+      "title": "Decision log: restic vs rustic, SQLite vs JSON snapshots, credential mechanism",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m0"
+      ],
+      "section": "A. Foundation (M0) \u2014 5",
+      "raw": "- [ ] #devguard #m0 Decision log: restic vs rustic, SQLite vs JSON snapshots, credential mechanism"
+    },
+    {
+      "id": "T06",
+      "title": "Literature map + `SlmRunRecord` schema/types (`docs/slm-research-metrics.md`)",
+      "done": true,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM research metrics (priority) \u2014 9",
+      "raw": "- [x] #devguard #slm Literature map + `SlmRunRecord` schema/types (`docs/slm-research-metrics.md`)"
+    },
+    {
+      "id": "T07",
+      "title": "NVIDIA collector: util %, VRAM used/total, temp \u00b0C, power W, clocks, driver",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM research metrics (priority) \u2014 9",
+      "raw": "- [ ] #devguard #slm NVIDIA collector: util %, VRAM used/total, temp \u00b0C, power W, clocks, driver"
+    },
+    {
+      "id": "T08",
+      "title": "Host companion sample: CPU %, RAM/swap, disk free (bytes; RFC3339)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM research metrics (priority) \u2014 9",
+      "raw": "- [ ] #devguard #slm Host companion sample: CPU %, RAM/swap, disk free (bytes; RFC3339)"
+    },
+    {
+      "id": "T09",
+      "title": "`devguard slm run begin|end` \u2014 bracket runs; interval samples; merge harness annotations",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM research metrics (priority) \u2014 9",
+      "raw": "- [ ] #devguard #slm `devguard slm run begin|end` \u2014 bracket runs; interval samples; merge harness annotations"
+    },
+    {
+      "id": "T10",
+      "title": "Ingest harness JSON: TTFT/TPOT p50/p99, tokens, batch, ctx, quantization, backend",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM research metrics (priority) \u2014 9",
+      "raw": "- [ ] #devguard #slm Ingest harness JSON: TTFT/TPOT p50/p99, tokens, batch, ctx, quantization, backend"
+    },
+    {
+      "id": "T11",
+      "title": "Derive GPU-rail energy (J\u2248P\u0304\u00b7\u0394t, J/token, tokens/J, tok/W); label `measurement_plane`",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM research metrics (priority) \u2014 9",
+      "raw": "- [ ] #devguard #slm Derive GPU-rail energy (J\u2248P\u0304\u00b7\u0394t, J/token, tokens/J, tok/W); label `measurement_plane`"
+    },
+    {
+      "id": "T12",
+      "title": "`devguard slm export` \u2014 paper-ready CSV/JSON with locked experimental cell columns",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM research metrics (priority) \u2014 9",
+      "raw": "- [ ] #devguard #slm `devguard slm export` \u2014 paper-ready CSV/JSON with locked experimental cell columns"
+    },
+    {
+      "id": "T13",
+      "title": "Fixtures: no `nvidia-smi` / no GPU / cool-down notes; redacted paths; never \u201chealthy\u201d if unavailable",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM research metrics (priority) \u2014 9",
+      "raw": "- [ ] #devguard #slm Fixtures: no `nvidia-smi` / no GPU / cool-down notes; redacted paths; never \u201chealthy\u201d if unavailable"
+    },
+    {
+      "id": "T14",
+      "title": "Vault/export template: 10-field academic checklist per published config row",
+      "done": false,
+      "tags": [
+        "devguard",
+        "slm"
+      ],
+      "section": "B. SLM research metrics (priority) \u2014 9",
+      "raw": "- [ ] #devguard #slm Vault/export template: 10-field academic checklist per published config row"
+    },
+    {
+      "id": "T15",
+      "title": "SQLite store + migrations (`runs`, `observations`, `snapshots`) under XDG state",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 SQLite store + migrations (`runs`, `observations`, `snapshots`) under XDG state"
+    },
+    {
+      "id": "T16",
+      "title": "Collect OS/kernel/boot-id/uptime + privacy-preserving hostname hash",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 Collect OS/kernel/boot-id/uptime + privacy-preserving hostname hash"
+    },
+    {
+      "id": "T17",
+      "title": "Collect APT inventory (+ optional Snap) and pending updates when readable",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 Collect APT inventory (+ optional Snap) and pending updates when readable"
+    },
+    {
+      "id": "T18",
+      "title": "Collect systemd enabled/running/failed units",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 Collect systemd enabled/running/failed units"
+    },
+    {
+      "id": "T19",
+      "title": "Collect listening sockets via `ss` (proto/addr/port/process; missing attribution distinct)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 Collect listening sockets via `ss` (proto/addr/port/process; missing attribution distinct)"
+    },
+    {
+      "id": "T20",
+      "title": "Collect NVIDIA driver/GPU + selected PCI/modules for upgrade diffs",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 Collect NVIDIA driver/GPU + selected PCI/modules for upgrade diffs"
+    },
+    {
+      "id": "T21",
+      "title": "Collect toolchain versions (rustc/cargo, gcc/clang, java, python, node, git, docker)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 Collect toolchain versions (rustc/cargo, gcc/clang, java, python, node, git, docker)"
+    },
+    {
+      "id": "T22",
+      "title": "Allowlist config-file hashing (hash+metadata only; never persist secret bytes)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 Allowlist config-file hashing (hash+metadata only; never persist secret bytes)"
+    },
+    {
+      "id": "T23",
+      "title": "`snapshot create [--label]` / `list` / `diff` \u2014 stable order; severity hints \u2260 facts",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 `snapshot create [--label]` / `list` / `diff` \u2014 stable order; severity hints \u2260 facts"
+    },
+    {
+      "id": "T24",
+      "title": "Upgrade fixtures: kernel/driver/port/package drift; partial coverage never marked clean",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m1"
+      ],
+      "section": "C. Snapshot / upgrade guardian (M1) \u2014 10",
+      "raw": "- [ ] #devguard #m1 Upgrade fixtures: kernel/driver/port/package drift; partial coverage never marked clean"
+    },
+    {
+      "id": "T25",
+      "title": "`health scan` \u2014 CPU, memory/swap, disk, uptime, top processes (args redacted)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "D. Health & fan diagnostics (M2) \u2014 6",
+      "raw": "- [ ] #devguard #m2 `health scan` \u2014 CPU, memory/swap, disk, uptime, top processes (args redacted)"
+    },
+    {
+      "id": "T26",
+      "title": "lm-sensors adapter: package/CPU/board temps + fan RPM when present",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "D. Health & fan diagnostics (M2) \u2014 6",
+      "raw": "- [ ] #devguard #m2 lm-sensors adapter: package/CPU/board temps + fan RPM when present"
+    },
+    {
+      "id": "T27",
+      "title": "NVIDIA health adapter; distinguish GPU fan vs case/CPU fans",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "D. Health & fan diagnostics (M2) \u2014 6",
+      "raw": "- [ ] #devguard #m2 NVIDIA health adapter; distinguish GPU fan vs case/CPU fans"
+    },
+    {
+      "id": "T28",
+      "title": "`health watch --interval` TUI; Ctrl+C clean; bounded poll; no background daemon",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "D. Health & fan diagnostics (M2) \u2014 6",
+      "raw": "- [ ] #devguard #m2 `health watch --interval` TUI; Ctrl+C clean; bounded poll; no background daemon"
+    },
+    {
+      "id": "T29",
+      "title": "Config threshold warnings (`warn_*`) labeled rules-of-thumb, not hardware guarantees",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "D. Health & fan diagnostics (M2) \u2014 6",
+      "raw": "- [ ] #devguard #m2 Config threshold warnings (`warn_*`) labeled rules-of-thumb, not hardware guarantees"
+    },
+    {
+      "id": "T30",
+      "title": "Fan-regression diagnostic: observations vs possible causes; no sudo/BIOS/module changes",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m2"
+      ],
+      "section": "D. Health & fan diagnostics (M2) \u2014 6",
+      "raw": "- [ ] #devguard #m2 Fan-regression diagnostic: observations vs possible causes; no sudo/BIOS/module changes"
+    },
+    {
+      "id": "T31",
+      "title": "Port + service drift vs baseline \u2192 findings (`info|warning|critical|unknown`)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "E. Security Sentinel (M3) \u2014 6",
+      "raw": "- [ ] #devguard #m3 Port + service drift vs baseline \u2192 findings (`info|warning|critical|unknown`)"
+    },
+    {
+      "id": "T32",
+      "title": "Firewall status (`ufw`/nftables) + readable SSH exposure/config checks",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "E. Security Sentinel (M3) \u2014 6",
+      "raw": "- [ ] #devguard #m3 Firewall status (`ufw`/nftables) + readable SSH exposure/config checks"
+    },
+    {
+      "id": "T33",
+      "title": "SSH login / failed-auth adapter (no credentials or full journal dumps)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "E. Security Sentinel (M3) \u2014 6",
+      "raw": "- [ ] #devguard #m3 SSH login / failed-auth adapter (no credentials or full journal dumps)"
+    },
+    {
+      "id": "T34",
+      "title": "OS security-update status via Ubuntu interfaces (never auto-install)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "E. Security Sentinel (M3) \u2014 6",
+      "raw": "- [ ] #devguard #m3 OS security-update status via Ubuntu interfaces (never auto-install)"
+    },
+    {
+      "id": "T35",
+      "title": "Allowlisted sensitive path permission checks (no global recursive scan)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "E. Security Sentinel (M3) \u2014 6",
+      "raw": "- [ ] #devguard #m3 Allowlisted sensitive path permission checks (no global recursive scan)"
+    },
+    {
+      "id": "T36",
+      "title": "`security scan` / `diff` / `findings [--severity]`; missing perms \u2260 clean in fixtures",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m3"
+      ],
+      "section": "E. Security Sentinel (M3) \u2014 6",
+      "raw": "- [ ] #devguard #m3 `security scan` / `diff` / `findings [--severity]`; missing perms \u2260 clean in fixtures"
+    },
+    {
+      "id": "T37",
+      "title": "Choose first engine (restic **or** rustic); pin versions; document password-file/FD/keyring",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "F. Backup Guardian (M4) \u2014 6",
+      "raw": "- [ ] #devguard #m4 Choose first engine (restic **or** rustic); pin versions; document password-file/FD/keyring"
+    },
+    {
+      "id": "T38",
+      "title": "`backup plan` dry-run: includes/excludes, unreadable paths, huge-model warnings",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "F. Backup Guardian (M4) \u2014 6",
+      "raw": "- [ ] #devguard #m4 `backup plan` dry-run: includes/excludes, unreadable paths, huge-model warnings"
+    },
+    {
+      "id": "T39",
+      "title": "`backup run` / `list` against configured repo only; never log/argv/config passwords",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "F. Backup Guardian (M4) \u2014 6",
+      "raw": "- [ ] #devguard #m4 `backup run` / `list` against configured repo only; never log/argv/config passwords"
+    },
+    {
+      "id": "T40",
+      "title": "`backup verify [--sample]` \u2014 metadata vs sampled content; record snapshot identity",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "F. Backup Guardian (M4) \u2014 6",
+      "raw": "- [ ] #devguard #m4 `backup verify [--sample]` \u2014 metadata vs sampled content; record snapshot identity"
+    },
+    {
+      "id": "T41",
+      "title": "Safe restore (`--dry-run` \u2192 `--apply` + confirm) + integration hash-match test",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "F. Backup Guardian (M4) \u2014 6",
+      "raw": "- [ ] #devguard #m4 Safe restore (`--dry-run` \u2192 `--apply` + confirm) + integration hash-match test"
+    },
+    {
+      "id": "T42",
+      "title": "Runbook: offsite/offline media + restore drills (no ransomware claims from encryption alone)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m4"
+      ],
+      "section": "F. Backup Guardian (M4) \u2014 6",
+      "raw": "- [ ] #devguard #m4 Runbook: offsite/offline media + restore drills (no ransomware claims from encryption alone)"
+    },
+    {
+      "id": "T43",
+      "title": "`dev env` \u2014 compiler/SDK/package-manager inventory (reproducibility report, not bit-identical)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "G. Developer Workflow Guardian (M5) \u2014 4",
+      "raw": "- [ ] #devguard #m5 `dev env` \u2014 compiler/SDK/package-manager inventory (reproducibility report, not bit-identical)"
+    },
+    {
+      "id": "T44",
+      "title": "`dev repos scan` \u2014 dirty/untracked/branch/upstream/unpushed; safe git; no network by default",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "G. Developer Workflow Guardian (M5) \u2014 4",
+      "raw": "- [ ] #devguard #m5 `dev repos scan` \u2014 dirty/untracked/branch/upstream/unpushed; safe git; no network by default"
+    },
+    {
+      "id": "T45",
+      "title": "Opt-in `dev deps audit` (cargo-audit/npm/pip/maven); network scans explicit only",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "G. Developer Workflow Guardian (M5) \u2014 4",
+      "raw": "- [ ] #devguard #m5 Opt-in `dev deps audit` (cargo-audit/npm/pip/maven); network scans explicit only"
+    },
+    {
+      "id": "T46",
+      "title": "Sanitize output/logs so token-like fixture strings never appear",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m5"
+      ],
+      "section": "G. Developer Workflow Guardian (M5) \u2014 4",
+      "raw": "- [ ] #devguard #m5 Sanitize output/logs so token-like fixture strings never appear"
+    },
+    {
+      "id": "T47",
+      "title": "Opt-in `systemd --user` timers + local alerts/report files + retention dry-run",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "H. Ops & multi-node (M6\u2013M7) \u2014 4",
+      "raw": "- [ ] #devguard #m6 Opt-in `systemd --user` timers + local alerts/report files + retention dry-run"
+    },
+    {
+      "id": "T48",
+      "title": "Packaging/release notes + idle-overhead benchmark (no port until user enables)",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m6"
+      ],
+      "section": "H. Ops & multi-node (M6\u2013M7) \u2014 4",
+      "raw": "- [ ] #devguard #m6 Packaging/release notes + idle-overhead benchmark (no port until user enables)"
+    },
+    {
+      "id": "T49",
+      "title": "Multi-node PoC design: allowlisted read-only metrics, mTLS, peer allowlist \u2014 **no remote shell**",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7"
+      ],
+      "section": "H. Ops & multi-node (M6\u2013M7) \u2014 4",
+      "raw": "- [ ] #devguard #m7 Multi-node PoC design: allowlisted read-only metrics, mTLS, peer allowlist \u2014 **no remote shell**"
+    },
+    {
+      "id": "T50",
+      "title": "AMD ROCm/Halo health provider spike only after NVIDIA path is stable",
+      "done": false,
+      "tags": [
+        "devguard",
+        "m7"
+      ],
+      "section": "H. Ops & multi-node (M6\u2013M7) \u2014 4",
+      "raw": "- [ ] #devguard #m7 AMD ROCm/Halo health provider spike only after NVIDIA path is stable"
+    }
+  ]
+}

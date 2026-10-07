@@ -43,6 +43,16 @@ warn_gpu_temp_c = 85
 warn_gpu_mem_percent = 90
 ```
 
+## Task backlog (reloadable)
+
+Canonical Obsidian/MCP task store: [`docs/tasks/`](docs/tasks/)
+
+```bash
+./docs/tasks/reload.sh          # verify 50-task store
+# checklist: docs/tasks/backlog-50.md
+# machine:   docs/tasks/manifest.json
+```
+
 ## Develop
 
 ```bash
