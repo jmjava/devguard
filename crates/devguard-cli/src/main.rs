@@ -10,6 +10,10 @@ use devguard_core::config::{Config, ConfigPaths};
 use devguard_core::doctor::run_doctor;
 use devguard_core::exit::ExitCode;
 use devguard_core::json::JsonEnvelope;
+use devguard_core::remote::{
+    collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
+};
+use devguard_core::DevGuardPaths;
 use tracing_subscriber::EnvFilter;
 
 use crate::output::{emit_human, emit_json, print_doctor_human};
@@ -44,6 +48,11 @@ enum Commands {
     Doctor,
     /// Show summary of most recent scans (M0: empty until collectors land)
     Status,
+    /// Named downstairs WSL helpers. Off unless local config names the SSH target.
+    Remote {
+        #[command(subcommand)]
+        action: RemoteCommands,
+    },
     /// Configuration management
     Config {
         #[command(subcommand)]
@@ -61,6 +70,25 @@ enum ConfigCommands {
     },
     /// Validate configuration and report missing optional paths
     Validate,
+}
+
+#[derive(Debug, Subcommand)]
+enum RemoteCommands {
+    /// Report host and tunnel reachability without printing the SSH target.
+    Status,
+    /// Open or close the Ollama SSH local-forward on 127.0.0.1.
+    Tunnel {
+        #[command(subcommand)]
+        action: TunnelCommands,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum TunnelCommands {
+    /// Open the Ollama local-forward. Does not install a service.
+    Up,
+    /// Close the local-forward this command opened.
+    Down,
 }
 
 fn main() -> StdExitCode {
@@ -132,6 +160,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             }
             Ok(ExitCode::Success)
         }
+        Commands::Remote { action } => run_remote(cli.json, paths, action),
         Commands::Config {
             action: ConfigCommands::Init { force },
         } => {
@@ -225,5 +254,98 @@ Next: edit model_dirs / repo paths as needed, then run `devguard doctor`.\n",
                 Ok(ExitCode::Partial)
             }
         }
+    }
+}
+
+fn run_remote(
+    json: bool,
+    paths: &DevGuardPaths,
+    action: RemoteCommands,
+) -> Result<ExitCode, devguard_core::DevGuardError> {
+    let config = load_config_optional(&paths.config_file)?;
+    let target = match &config {
+        Some(config) => config.remote_target()?,
+        None => None,
+    };
+    let ssh_bin = ssh_bin()?;
+    let state_dir = remote_state_dir(paths)?;
+    match action {
+        RemoteCommands::Status => {
+            let report =
+                collect_status(target.as_ref(), &ssh_bin, &state_dir).map_err(remote_err)?;
+            if json {
+                emit_json(&JsonEnvelope::success("remote status", &report))?;
+            } else {
+                emit_human(&format_remote_status(&report));
+            }
+            Ok(ExitCode::Success)
+        }
+        RemoteCommands::Tunnel { action } => {
+            let Some(target) = target else {
+                return Err(devguard_core::DevGuardError::Usage(
+                    "remote target is not configured; set host and user in the local config".into(),
+                ));
+            };
+            let (command, report) = match action {
+                TunnelCommands::Up => (
+                    "remote tunnel up",
+                    tunnel_up(&target, &ssh_bin, &state_dir).map_err(remote_err)?,
+                ),
+                TunnelCommands::Down => (
+                    "remote tunnel down",
+                    tunnel_down(&target, &ssh_bin, &state_dir).map_err(remote_err)?,
+                ),
+            };
+            if json {
+                emit_json(&JsonEnvelope::success(command, &report))?;
+            } else {
+                emit_human(&format_tunnel(&report));
+            }
+            Ok(ExitCode::Success)
+        }
+    }
+}
+
+fn load_config_optional(
+    path: &std::path::Path,
+) -> Result<Option<Config>, devguard_core::DevGuardError> {
+    match Config::load(path) {
+        Ok(config) => Ok(Some(config)),
+        Err(devguard_core::config::ConfigError::NotFound(_)) => Ok(None),
+        Err(err) => Err(err.into()),
+    }
+}
+
+fn remote_err(err: devguard_core::remote::RemoteError) -> devguard_core::DevGuardError {
+    devguard_core::DevGuardError::Message(err.to_string())
+}
+
+fn ssh_bin() -> Result<PathBuf, devguard_core::DevGuardError> {
+    match std::env::var("DEVGUARD_SSH_BIN") {
+        Ok(value) if !value.is_empty() => {
+            let path = PathBuf::from(&value);
+            if !path.is_absolute() {
+                return Err(devguard_core::DevGuardError::Usage(
+                    "DEVGUARD_SSH_BIN must be an absolute path".into(),
+                ));
+            }
+            Ok(path)
+        }
+        _ => Ok(PathBuf::from("ssh")),
+    }
+}
+
+fn remote_state_dir(paths: &DevGuardPaths) -> Result<PathBuf, devguard_core::DevGuardError> {
+    match std::env::var("DEVGUARD_STATE_DIR") {
+        Ok(value) if !value.is_empty() => {
+            let path = PathBuf::from(&value);
+            if !path.is_absolute() {
+                return Err(devguard_core::DevGuardError::Usage(
+                    "DEVGUARD_STATE_DIR must be an absolute path".into(),
+                ));
+            }
+            Ok(path)
+        }
+        _ => Ok(paths.state_dir.clone()),
     }
 }

@@ -14,6 +14,8 @@ Working today:
 - `devguard doctor` — prerequisites, permissions, **NVIDIA/SLM GPU coverage**
 - `devguard config init` / `devguard config validate`
 - `devguard status` — placeholder until collectors persist scans
+- `devguard remote status` — host and tunnel reachability. Off until local config names an SSH host and user. Does not print that target.
+- `devguard remote tunnel up` / `down` — SSH local-forward to Ollama on `127.0.0.1` inside WSL. No bind on all interfaces, no public tunnel, no arbitrary command, no file upload, no firewall change, and no resident daemon.
 - Versioned `--json` envelopes, redacted logging helpers, unit + CLI smoke tests
 
 **Next priority (given SLM / academic workloads):** health + GPU collectors and run bracketing for paper-ready efficiency tables (TTFT/TPOT annotations + VRAM/power/temp). See [`docs/slm-research-metrics.md`](docs/slm-research-metrics.md).
