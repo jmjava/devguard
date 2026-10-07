@@ -65,6 +65,7 @@ devguard snapshot list [--json]
 devguard snapshot diff <BASELINE_ID> <CURRENT_ID> [--json]
 
 devguard health scan [--json]
+devguard health fan [--json]            # observations and hypotheses; missing sensors or nvidia-smi is unavailable
 devguard health watch --interval 5s     # TUI, exits cleanly on Ctrl+C
 devguard gpu scan [--json]
 
@@ -182,6 +183,7 @@ Collect:
 - Sensor adapters: lm-sensors, NVIDIA CLI. Distinguish motherboard/case/CPU fan measurements from GPU fan speeds if observable.
 - Show temperatures, power limits, fan RPM, GPU utilization and VRAM only when exposed by device/tool.
 - `health scan` is single-shot. `health watch` refreshes on bounded interval, with no background service.
+- `health fan` prints observations and hypotheses for fan noise. It reads process names only, never command arguments. Missing `sensors` or `nvidia-smi`, and a missing chassis tachometer, are `unavailable` and the result is not clean. The command does not use sudo, load modules, write BIOS, or change fan curves.
 - Include diagnostic advice only when backed by collected metrics; avoid false precision.
 
 ### C. Security Sentinel
