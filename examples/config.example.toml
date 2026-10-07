@@ -1,0 +1,57 @@
+# Example DevGuard configuration (see SPEC.md §7 and [slm] for local model metrics).
+# Copy via `devguard config init` or manually to ~/.config/devguard/config.toml.
+# Never store repository passwords or API tokens in this file.
+
+schema_version = 1
+
+[general]
+json_redact_paths = true
+collect_interval_seconds = 5
+
+[database]
+retention_days = 90
+
+[snapshot]
+config_hash_allowlist = ["~/.config/devguard/config.toml"]
+
+[health]
+warn_cpu_temp_c = 85
+warn_gpu_temp_c = 85
+warn_gpu_mem_percent = 90
+warn_mem_percent = 90
+
+[security]
+check_ssh_logs = true
+check_firewall = true
+check_listening_ports = true
+
+[backup]
+engine = "restic"
+# repository = "/media/USER/backup/devguard-restic"
+include = ["~/Documents", "~/Projects"]
+exclude = [
+  "**/target",
+  "**/node_modules",
+  "**/.cache",
+  "**/__pycache__",
+  "**/*.gguf",
+  "**/*.bin",
+  "**/models/**",
+]
+verify_mode = "sample"
+
+[dev]
+repo_roots = ["~/Projects"]
+allow_network_audits = false
+
+# SLM / local inference metrics — inventory and resource capture only.
+# See docs/slm-research-metrics.md for paper-oriented fields (TTFT/TPOT/J/token).
+[slm]
+workspace_label = "local-inference"
+model_dirs = ["~/models"]
+process_name_hints = ["ollama", "llama", "vllm", "text-generation", "python"]
+capture_gpu = true
+capture_host = true
+sample_interval_seconds = 1
+default_backend = "llama.cpp"
+suggested_cooldown_seconds = 10

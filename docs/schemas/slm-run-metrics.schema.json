@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devguard.local/schemas/slm-run-metrics.schema.json",
+  "title": "DevGuard SLM research run record",
+  "description": "Paper-oriented run envelope combining automatic host/GPU samples with optional harness annotations (TTFT/TPOT/tokens/task scores).",
+  "type": "object",
+  "required": ["schema_version", "run_id", "started_at", "measurement_plane", "system"],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "run_label": { "type": "string" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "duration_s": { "type": "number", "minimum": 0 },
+    "measurement_plane": {
+      "type": "string",
+      "enum": ["gpu_rail", "host_process", "wall_ac", "mixed", "unknown"],
+      "description": "Where power/energy numbers come from. gpu_rail = nvidia-smi style; wall_ac = external meter."
+    },
+    "experiment": {
+      "type": "object",
+      "properties": {
+        "model_id": { "type": "string" },
+        "parameter_count": { "type": "integer", "minimum": 0 },
+        "quantization": { "type": "string" },
+        "backend": { "type": "string" },
+        "batch_size": { "type": "integer", "minimum": 1 },
+        "context_length": { "type": "integer", "minimum": 1 },
+        "prompt_tokens": { "type": "integer", "minimum": 0 },
+        "output_tokens": { "type": "integer", "minimum": 0 },
+        "git_commit": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "latency": {
+      "type": "object",
+      "description": "Harness-supplied latency; DevGuard does not invent these.",
+      "properties": {
+        "ttft_ms": { "type": "number", "minimum": 0 },
+        "ttft_p50_ms": { "type": "number", "minimum": 0 },
+        "ttft_p99_ms": { "type": "number", "minimum": 0 },
+        "tpot_ms": { "type": "number", "minimum": 0 },
+        "tpot_p50_ms": { "type": "number", "minimum": 0 },
+        "tpot_p99_ms": { "type": "number", "minimum": 0 },
+        "e2e_latency_ms": { "type": "number", "minimum": 0 },
+        "tokens_per_second": { "type": "number", "minimum": 0 },
+        "throughput_kind": {
+          "type": "string",
+          "enum": ["decode", "e2e", "prefill", "unspecified"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "quality": {
+      "type": "object",
+      "properties": {
+        "task_name": { "type": "string" },
+        "task_metric": { "type": "string" },
+        "task_score": { "type": "number" },
+        "higher_is_better": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "energy": {
+      "type": "object",
+      "properties": {
+        "mean_gpu_power_w": { "type": "number", "minimum": 0 },
+        "energy_gpu_approx_j": { "type": "number", "minimum": 0 },
+        "energy_wall_j": { "type": "number", "minimum": 0 },
+        "joules_per_token": { "type": "number", "minimum": 0 },
+        "tokens_per_joule": { "type": "number", "minimum": 0 },
+        "throughput_per_watt": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "system": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["complete", "partial", "unavailable"]
+        },
+        "host": { "type": "object" },
+        "gpus": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "samples": {
+          "type": "array",
+          "description": "Optional time-series samples during the run window",
+          "items": { "type": "object" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
