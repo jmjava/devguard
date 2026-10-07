@@ -1,6 +1,7 @@
 //! DevGuard CLI entrypoint.
 
 mod output;
+mod watch;
 
 use std::path::PathBuf;
 use std::process::ExitCode as StdExitCode;
@@ -15,10 +16,12 @@ use devguard_core::json::JsonEnvelope;
 use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
 };
+use devguard_core::watch::parse_watch_interval;
 use devguard_core::DevGuardPaths;
 use tracing_subscriber::EnvFilter;
 
 use crate::output::{emit_human, emit_json, print_doctor_human};
+use crate::watch::run_watch;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -79,6 +82,16 @@ enum HealthCommands {
     /// Does not use sudo, write a fan curve, load a kernel module, or change BIOS.
     /// Missing `sensors` or `nvidia-smi` is unavailable, never a clean result.
     Fan,
+    /// Refresh the fan diagnostic in a terminal. Exits on Ctrl+C.
+    ///
+    /// The interval is bounded to 1s..300s (`5s`, `1m`, `1000ms`). This command
+    /// does not start a background service or signal processes. Missing
+    /// `sensors` or `nvidia-smi` stays unavailable.
+    Watch {
+        /// Refresh interval, for example `5s`. Bounded to 1s..300s.
+        #[arg(long, value_name = "DURATION")]
+        interval: String,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -206,23 +219,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             }
             Ok(report.exit_code())
         }
-        Commands::Health {
-            action: HealthCommands::Fan,
-        } => {
-            let report = scan_fan();
-            let warnings = report.warnings();
-            if cli.json {
-                let envelope = if warnings.is_empty() {
-                    JsonEnvelope::success("health fan", &report)
-                } else {
-                    JsonEnvelope::success_with_warnings("health fan", &report, warnings)
-                };
-                emit_json(&envelope)?;
-            } else {
-                emit_human(&format_fan_human(&report));
-            }
-            Ok(report.exit_code())
-        }
+        Commands::Health { action } => run_health(cli.json, action),
         Commands::Remote { action } => run_remote(cli.json, paths, action),
         Commands::Config {
             action: ConfigCommands::Init { force },
@@ -316,6 +313,38 @@ Next: edit model_dirs / repo paths as needed, then run `devguard doctor`.\n",
             } else {
                 Ok(ExitCode::Partial)
             }
+        }
+    }
+}
+
+fn run_health(
+    json: bool,
+    action: HealthCommands,
+) -> Result<ExitCode, devguard_core::DevGuardError> {
+    match action {
+        HealthCommands::Fan => {
+            let report = scan_fan();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("health fan", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("health fan", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_fan_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        HealthCommands::Watch { interval } => {
+            let interval = parse_watch_interval(&interval)?;
+            if json {
+                return Err(devguard_core::DevGuardError::Usage(
+                    "health watch is a terminal display and does not emit JSON".into(),
+                ));
+            }
+            run_watch(interval)
         }
     }
 }

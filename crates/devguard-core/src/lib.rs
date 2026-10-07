@@ -12,6 +12,7 @@ pub mod paths;
 pub mod redact;
 pub mod remote;
 pub mod slm;
+pub mod watch;
 
 pub use collector::{Collection, CollectionStatus, Collector};
 pub use config::{Config, ConfigError, ConfigPaths};
@@ -31,4 +32,8 @@ pub use slm::{
     academic_metric_checklist, EnergyMetrics, ExperimentMeta, GpuSample, HostSample,
     LatencyMetrics, MeasurementPlane, QualityMetrics, SlmRunRecord, SystemObservation,
     SLM_RUN_SCHEMA_VERSION,
+};
+pub use watch::{
+    format_interval, parse_watch_interval, refresh, render_watch, WatchSample, MAX_WATCH_INTERVAL,
+    MIN_WATCH_INTERVAL,
 };
