@@ -20,7 +20,79 @@ fn help_lists_core_commands() {
         .stdout(predicate::str::contains("config"))
         .stdout(predicate::str::contains("status"))
         .stdout(predicate::str::contains("health"))
+        .stdout(predicate::str::contains("gpu"))
         .stdout(predicate::str::contains("remote"));
+}
+
+#[test]
+fn gpu_help_documents_a_missing_field_as_unavailable() {
+    devguard()
+        .args(["gpu", "scan", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("UUID"))
+        .stdout(predicate::str::contains("sudo"));
+}
+
+#[test]
+fn gpu_scan_json_never_prints_a_raw_uuid() {
+    let output = devguard()
+        .args(["--json", "gpu", "scan"])
+        .output()
+        .expect("gpu scan");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        !stdout.contains("GPU-") && !stderr.contains("GPU-"),
+        "raw uuid leaked\nstdout={stdout}\nstderr={stderr}"
+    );
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "gpu scan");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["loads_modules"], false);
+    assert!(value["data"].get("processes").is_none());
+    let nvidia = value["data"]["nvidia_smi"]["status"].as_str();
+    assert!(nvidia == Some("available") || nvidia == Some("unavailable"));
+    let clean = value["data"]["clean"].as_bool().expect("clean");
+    if nvidia == Some("unavailable") || !clean {
+        assert!(!clean);
+        assert_eq!(output.status.code(), Some(3), "{stdout}");
+    } else {
+        assert_eq!(output.status.code(), Some(0), "{stdout}");
+    }
+    let gpus = value["data"]["gpus"].as_array().expect("gpus");
+    if nvidia == Some("unavailable") {
+        assert!(gpus.is_empty());
+    }
+    for gpu in gpus {
+        assert!(gpu["index"].is_number());
+        assert!(gpu.get("uuid").is_none());
+        assert!(gpu.get("cmdline").is_none());
+        assert!(gpu.get("args").is_none());
+        let hash = &gpu["uuid_hash"];
+        let status = hash["status"].as_str();
+        assert!(status == Some("available") || status == Some("unavailable"));
+        if let Some(value) = hash["value"].as_str() {
+            assert_eq!(value.len(), 64);
+            assert!(value.chars().all(|ch| ch.is_ascii_hexdigit()));
+        }
+    }
+}
+
+#[test]
+fn gpu_scan_human_states_sudo_and_modules_are_off() {
+    let output = devguard().args(["gpu", "scan"]).output().expect("gpu scan");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard GPU scan"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("loads modules: no"));
+    assert!(!stdout.contains("GPU-"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+    let code = output.status.code();
+    assert!(code == Some(0) || code == Some(3), "{stdout}");
 }
 
 #[test]

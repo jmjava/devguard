@@ -67,7 +67,7 @@ devguard snapshot diff <BASELINE_ID> <CURRENT_ID> [--json]
 devguard health scan [--json]
 devguard health fan [--json]            # observations and hypotheses; missing sensors or nvidia-smi is unavailable
 devguard health watch --interval 5s     # TUI, exits cleanly on Ctrl+C
-devguard gpu scan [--json]
+devguard gpu scan [--json]              # one-shot nvidia-smi reading; a missing tool or field is unavailable
 
 devguard security scan [--json]
 devguard security diff <BASELINE_ID> <CURRENT_ID> [--json]
@@ -184,6 +184,7 @@ Collect:
 - Show temperatures, power limits, fan RPM, GPU utilization and VRAM only when exposed by device/tool.
 - `health scan` is single-shot. `health watch` refreshes on bounded interval, with no background service.
 - `health fan` prints observations and hypotheses for fan noise. It reads process names only, never command arguments. Missing `sensors` or `nvidia-smi`, and a missing chassis tachometer, are `unavailable` and the result is not clean. The command does not use sudo, load modules, write BIOS, or change fan curves.
+- `gpu scan` reads `nvidia-smi` once. It prints a hash of each GPU UUID and does not print the raw UUID. Missing `nvidia-smi` or a missing field is `unavailable`, and the result is not clean. Multiple GPUs stay in nvidia-smi index order. The call times out and keeps a bounded capture. It does not use sudo or load kernel modules. It does not collect process arguments.
 - Include diagnostic advice only when backed by collected metrics; avoid false precision.
 
 ### C. Security Sentinel
