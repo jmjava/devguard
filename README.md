@@ -16,6 +16,8 @@ Working today:
 - `devguard status` — placeholder until collectors persist scans
 - `devguard health fan` — read-only observations and hypotheses. Process names only. Missing `sensors` or `nvidia-smi` is `unavailable`, never a clean result. Does not use sudo or change fan curves.
 - `devguard gpu scan` — one-shot NVIDIA reading (human and `--json`). A hash of the GPU UUID, never the raw UUID. Missing `nvidia-smi` or a missing field is `unavailable`, never a clean result. Does not use sudo or load modules.
+- `devguard remote status` — host and tunnel reachability. Off until local config names an SSH host and user. Does not print that target.
+- `devguard remote tunnel up` / `down` — SSH local-forward to Ollama on `127.0.0.1` inside WSL. No bind on all interfaces, no public tunnel, no arbitrary command, no file upload, no firewall change, and no resident daemon.
 - Versioned `--json` envelopes, redacted logging helpers, unit + CLI smoke tests
 
 **Next priority (given SLM / academic workloads):** health + GPU collectors and run bracketing for paper-ready efficiency tables (TTFT/TPOT annotations + VRAM/power/temp). See [`docs/slm-research-metrics.md`](docs/slm-research-metrics.md).

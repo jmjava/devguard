@@ -226,6 +226,7 @@ Severity categories: `info`, `warning`, `critical`, `unknown`; every rule is doc
 - Track CPU, GPU, VRAM/unified memory, temperature, disk space, network reachability, model-serving health from opt-in endpoints.
 - Discover adapters per vendor; don't assume `nvidia-smi` works for AMD ROCm/Halo.
 - Deployment can start with locally scheduled JSON export or SSH-based user-initiated collection instead of an agent.
+- `devguard remote` is that user-initiated helper. It stays off unless local config names an SSH host and user (those values stay out of git and out of command output). It may only report host up or down, open or close an SSH local-forward to Ollama on `127.0.0.1`, read Ollama tags through that forward, and take a fixed GPU sample plus a fixed fan sample. It does not open a remote shell.
 
 ## 7. Example configuration
 

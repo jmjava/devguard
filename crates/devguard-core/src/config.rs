@@ -87,6 +87,9 @@ pub struct Config {
     /// SLM / local model metrics capture (opt-in directories and labels).
     #[serde(default)]
     pub slm: SlmConfig,
+    /// Named downstairs WSL helper. Off until host and user are both set.
+    #[serde(default)]
+    pub remote: RemoteConfig,
 }
 
 impl Default for Config {
@@ -101,6 +104,7 @@ impl Default for Config {
             backup: BackupConfig::default(),
             dev: DevConfig::default(),
             slm: SlmConfig::default(),
+            remote: RemoteConfig::default(),
         }
     }
 }
@@ -270,6 +274,39 @@ pub struct SlmConfig {
     pub suggested_cooldown_seconds: u64,
 }
 
+/// SSH target for the downstairs WSL helper.
+///
+/// Host, user, and port belong in the local config file only. Leave host and
+/// user empty to keep `devguard remote` off. Nothing in this struct is a
+/// license to run an arbitrary remote command.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RemoteConfig {
+    #[serde(default)]
+    pub host: Option<String>,
+    #[serde(default)]
+    pub user: Option<String>,
+    #[serde(default = "default_ssh_port")]
+    pub port: u16,
+    /// Local end of the Ollama forward. Always bound to 127.0.0.1.
+    #[serde(default = "default_ollama_port")]
+    pub local_port: u16,
+    /// Ollama port on 127.0.0.1 inside WSL.
+    #[serde(default = "default_ollama_port")]
+    pub remote_port: u16,
+}
+
+impl Default for RemoteConfig {
+    fn default() -> Self {
+        Self {
+            host: None,
+            user: None,
+            port: default_ssh_port(),
+            local_port: default_ollama_port(),
+            remote_port: default_ollama_port(),
+        }
+    }
+}
+
 impl Default for SlmConfig {
     fn default() -> Self {
         Self {
@@ -323,6 +360,12 @@ fn default_slm_sample_interval() -> u64 {
 }
 fn default_slm_cooldown() -> u64 {
     10
+}
+fn default_ssh_port() -> u16 {
+    22
+}
+fn default_ollama_port() -> u16 {
+    11434
 }
 
 impl Config {
@@ -433,7 +476,34 @@ impl Config {
         }
         // Never accept password-like keys if someone stuffed them into TOML by mistake.
         // (serde will ignore unknown fields by default only if we enable it; we keep strictness via docs.)
+        self.remote_target()?;
         Ok(())
+    }
+
+    /// SSH target for the downstairs helper.
+    ///
+    /// `Ok(None)` means the helper is off. Host and user must both be set.
+    /// The returned target never includes a wildcard bind.
+    pub fn remote_target(&self) -> Result<Option<crate::remote::RemoteTarget>, ConfigError> {
+        let host = self.remote.host.as_deref().map(str::trim).unwrap_or("");
+        let user = self.remote.user.as_deref().map(str::trim).unwrap_or("");
+        if host.is_empty() && user.is_empty() {
+            return Ok(None);
+        }
+        if host.is_empty() || user.is_empty() {
+            return Err(ConfigError::Validation(
+                "remote host and user must both be set to name an SSH target".into(),
+            ));
+        }
+        crate::remote::RemoteTarget::new(
+            host,
+            user,
+            self.remote.port,
+            self.remote.local_port,
+            self.remote.remote_port,
+        )
+        .map(Some)
+        .map_err(ConfigError::Validation)
     }
 
     /// Expand `~` in a path string using the current user's home directory.
@@ -566,6 +636,13 @@ capture_host = true
 sample_interval_seconds = 1
 # default_backend = "llama.cpp"
 suggested_cooldown_seconds = 10
+
+# Downstairs WSL helper. Off until host and user are set in this local file.
+# Do not commit a real host, user, or SSH port. The Ollama forward is
+# 127.0.0.1 to 127.0.0.1. local_port and remote_port default to 11434.
+# [remote]
+# host = ""
+# user = ""
 "#,
         schema = config.schema_version,
         redact = config.general.json_redact_paths,
@@ -619,6 +696,25 @@ mod tests {
         let loaded = Config::load(&path).unwrap();
         assert_eq!(loaded.schema_version, CONFIG_SCHEMA_VERSION);
         assert!(loaded.slm.capture_gpu);
+        assert!(loaded.remote_target().unwrap().is_none());
+    }
+
+    #[test]
+    fn remote_stays_off_until_host_and_user_are_named() {
+        assert!(Config::default().remote_target().unwrap().is_none());
+        let mut half = Config::default();
+        half.remote.host = Some("fixture-host".into());
+        assert!(half.validate().is_err());
+        let mut named = Config::default();
+        named.remote.host = Some("fixture-host".into());
+        named.remote.user = Some("fixture-user".into());
+        assert!(named.remote_target().unwrap().is_some());
+        named.remote.host = Some("0.0.0.0".into());
+        assert!(named.validate().is_err());
+        named.remote.host = Some("bad host".into());
+        named.remote.user = Some("fixture-user".into());
+        let err = named.validate().unwrap_err();
+        assert!(!err.to_string().contains("bad host"));
     }
 
     #[test]
