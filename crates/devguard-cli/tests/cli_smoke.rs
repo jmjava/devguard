@@ -106,6 +106,36 @@ fn health_help_documents_the_fan_command() {
 }
 
 #[test]
+fn health_watch_help_documents_ctrl_c_and_interval() {
+    devguard()
+        .args(["health", "watch", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Ctrl+C"))
+        .stdout(predicate::str::contains("--interval"))
+        .stdout(predicate::str::contains("background service"))
+        .stdout(predicate::str::contains("unavailable"));
+}
+
+#[test]
+fn health_watch_rejects_an_interval_outside_the_bound() {
+    devguard()
+        .args(["health", "watch", "--interval", "0s"])
+        .assert()
+        .code(64)
+        .stderr(predicate::str::contains("outside"));
+}
+
+#[test]
+fn health_watch_rejects_json_without_opening_a_terminal() {
+    devguard()
+        .args(["--json", "health", "watch", "--interval", "5s"])
+        .assert()
+        .code(64)
+        .stderr(predicate::str::contains("does not emit JSON"));
+}
+
+#[test]
 fn health_fan_json_reports_observations_and_hypotheses() {
     let output = devguard()
         .args(["--json", "health", "fan"])

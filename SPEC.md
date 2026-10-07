@@ -182,7 +182,7 @@ Collect:
 - Read CPU load, memory/swap, disk capacity, I/O (when available), system uptime and top resource consumers with sensitive command arguments suppressed.
 - Sensor adapters: lm-sensors, NVIDIA CLI. Distinguish motherboard/case/CPU fan measurements from GPU fan speeds if observable.
 - Show temperatures, power limits, fan RPM, GPU utilization and VRAM only when exposed by device/tool.
-- `health scan` is single-shot. `health watch` refreshes on bounded interval, with no background service.
+- `health scan` is single-shot. `health watch` refreshes the fan diagnostic in a ratatui terminal on a bounded interval (1s through 300s), exits on Ctrl+C, and does not start a background service or signal processes. Missing `sensors` or `nvidia-smi` stays unavailable.
 - `health fan` prints observations and hypotheses for fan noise. It reads process names only, never command arguments. Missing `sensors` or `nvidia-smi`, and a missing chassis tachometer, are `unavailable` and the result is not clean. The command does not use sudo, load modules, write BIOS, or change fan curves.
 - `gpu scan` reads `nvidia-smi` once. It prints a hash of each GPU UUID and does not print the raw UUID. Missing `nvidia-smi` or a missing field is `unavailable`, and the result is not clean. Multiple GPUs stay in nvidia-smi index order. The call times out and keeps a bounded capture. It does not use sudo or load kernel modules. It does not collect process arguments.
 - Include diagnostic advice only when backed by collected metrics; avoid false precision.
