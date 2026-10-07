@@ -16,3 +16,9 @@
 - **Measurement plane:** default `gpu_rail` (`nvidia-smi`); never claim wall-AC MLPerf Power equivalence without an external meter field.
 - **Derived metrics:** `energy_j ≈ P_mean * duration`, `J/token`, `tokens/J`, `throughput/Watt` when annotations + samples exist.
 - JSON schema: `docs/schemas/slm-run-metrics.schema.json`; Rust types: `devguard_core::slm`.
+
+## 2026-10-07 — Deep task store + portfolio synergies
+
+- Canonical store: `docs/tasks/` with generated `backlog-deep.md` (~400 tasks) + `manifest.json` for Obsidian MCP reload.
+- Synergy map (`SYNERGIES.md`) prioritizes: **slm-setup** (bracket Ollama), **embabel-slm** (paper tables), **obsidian-mcp** (vault reload), **sdlc-spdd**, **docgen**.
+- External: import llama-bench / vLLM metrics / Zeus energy; do not reinvent Ollama MCP or training.
