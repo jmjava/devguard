@@ -10,6 +10,7 @@ use devguard_core::config::{Config, ConfigPaths};
 use devguard_core::doctor::run_doctor;
 use devguard_core::exit::ExitCode;
 use devguard_core::fan::{format_fan_human, scan_fan};
+use devguard_core::gpu::{format_gpu_human, scan_gpu};
 use devguard_core::json::JsonEnvelope;
 use tracing_subscriber::EnvFilter;
 
@@ -50,6 +51,11 @@ enum Commands {
         #[command(subcommand)]
         action: HealthCommands,
     },
+    /// One-shot NVIDIA GPU reading. Does not use sudo or load kernel modules.
+    Gpu {
+        #[command(subcommand)]
+        action: GpuCommands,
+    },
     /// Configuration management
     Config {
         #[command(subcommand)]
@@ -64,6 +70,14 @@ enum HealthCommands {
     /// Does not use sudo, write a fan curve, load a kernel module, or change BIOS.
     /// Missing `sensors` or `nvidia-smi` is unavailable, never a clean result.
     Fan,
+}
+
+#[derive(Debug, Subcommand)]
+enum GpuCommands {
+    /// Read nvidia-smi once. A missing tool or field is unavailable, never a clean result.
+    ///
+    /// Prints a hash of each GPU UUID. Does not print the raw UUID, use sudo, or load modules.
+    Scan,
 }
 
 #[derive(Debug, Subcommand)]
@@ -146,6 +160,23 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
                 ));
             }
             Ok(ExitCode::Success)
+        }
+        Commands::Gpu {
+            action: GpuCommands::Scan,
+        } => {
+            let report = scan_gpu();
+            let warnings = report.warnings();
+            if cli.json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("gpu scan", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("gpu scan", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_gpu_human(&report));
+            }
+            Ok(report.exit_code())
         }
         Commands::Health {
             action: HealthCommands::Fan,
