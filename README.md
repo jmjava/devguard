@@ -14,6 +14,7 @@ Working today:
 - `devguard doctor` — prerequisites, permissions, **NVIDIA/SLM GPU coverage**
 - `devguard config init` / `devguard config validate`
 - `devguard status` — placeholder until collectors persist scans
+- `devguard health fan` — read-only observations and hypotheses. Process names only. Missing `sensors` or `nvidia-smi` is `unavailable`, never a clean result. Does not use sudo or change fan curves.
 - Versioned `--json` envelopes, redacted logging helpers, unit + CLI smoke tests
 
 **Next priority (given SLM / academic workloads):** health + GPU collectors and run bracketing for paper-ready efficiency tables (TTFT/TPOT annotations + VRAM/power/temp). See [`docs/slm-research-metrics.md`](docs/slm-research-metrics.md).

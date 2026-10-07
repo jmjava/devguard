@@ -9,6 +9,7 @@ use clap::{Parser, Subcommand};
 use devguard_core::config::{Config, ConfigPaths};
 use devguard_core::doctor::run_doctor;
 use devguard_core::exit::ExitCode;
+use devguard_core::fan::{format_fan_human, scan_fan};
 use devguard_core::json::JsonEnvelope;
 use tracing_subscriber::EnvFilter;
 
@@ -44,11 +45,25 @@ enum Commands {
     Doctor,
     /// Show summary of most recent scans (M0: empty until collectors land)
     Status,
+    /// Read-only health checks. Does not use sudo, load modules, write BIOS, or change fan curves.
+    Health {
+        #[command(subcommand)]
+        action: HealthCommands,
+    },
     /// Configuration management
     Config {
         #[command(subcommand)]
         action: ConfigCommands,
     },
+}
+
+#[derive(Debug, Subcommand)]
+enum HealthCommands {
+    /// Observations and hypotheses for fan noise. Process names only.
+    ///
+    /// Does not use sudo, write a fan curve, load a kernel module, or change BIOS.
+    /// Missing `sensors` or `nvidia-smi` is unavailable, never a clean result.
+    Fan,
 }
 
 #[derive(Debug, Subcommand)]
@@ -131,6 +146,23 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
                 ));
             }
             Ok(ExitCode::Success)
+        }
+        Commands::Health {
+            action: HealthCommands::Fan,
+        } => {
+            let report = scan_fan();
+            let warnings = report.warnings();
+            if cli.json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("health fan", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("health fan", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_fan_human(&report));
+            }
+            Ok(report.exit_code())
         }
         Commands::Config {
             action: ConfigCommands::Init { force },
