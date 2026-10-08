@@ -4,6 +4,7 @@ members = [
     "crates/devguard-core",
     "crates/devguard-cli",
     "crates/devguard-dashboard",
+    "crates/devguard-store",
 ]
 
 [workspace.package]
@@ -16,6 +17,7 @@ authors = ["John Menke"]
 
 [workspace.dependencies]
 devguard-core = { path = "crates/devguard-core" }
+devguard-store = { path = "crates/devguard-store" }
 anyhow = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 clap = { version = "4.5", features = ["derive"] }
@@ -24,6 +26,9 @@ crossterm = "0.28"
 # 0.3.11 and later require rustc 1.88.
 ratatui = "0.29"
 directories = "5.0"
+# 0.32.1 stays on rustc 1.85. Later rusqlite releases follow the newest
+# stable compiler at publication time. Bundled SQLite avoids a system library.
+rusqlite = { version = "=0.32.1", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"

@@ -1,0 +1,16 @@
+[package]
+name = "devguard-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "SQLite persistence for DevGuard runs, observations, and snapshots"
+repository.workspace = true
+
+[dependencies]
+rusqlite.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile = "3.14"

@@ -1,5 +1,12 @@
 # Decision log
 
+## 2026-10-07 — M1 persistence is a local SQLite file
+
+- The store is crate `devguard-store`, using `rusqlite` 0.32.1 with bundled SQLite so the toolchain stays on rustc 1.85 and does not need a system `libsqlite3`.
+- The database file is `devguard.db` under the XDG state directory (`~/.local/state/devguard/`).
+- Schema version 1 creates `runs`, `observations`, and `snapshots`. Findings and backup tables stay out of this slice.
+- This slice stores rows the caller supplies. It does not collect OS inventory, packages, or sockets, and it does not open a port.
+
 ## 2026-10-07 — M0 skeleton; prioritize SLM GPU metrics after M0
 
 - **License:** MIT (repo `LICENSE`).

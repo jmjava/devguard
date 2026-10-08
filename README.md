@@ -23,6 +23,7 @@ Working today:
 - `devguard remote tunnel up` / `down` — SSH local-forward to Ollama on `127.0.0.1` inside WSL. No bind on all interfaces, no public tunnel, no arbitrary command, no file upload, no firewall change, and no resident daemon.
 - `devguard dev env` — version lines for `rustc`, `cargo`, `python3`, `node`, `git`, and `gcc` when they are on `PATH`. A tool that is not on `PATH` is `unavailable`, and the report is not clean. Does not install tools, use the network, or run a package audit.
 - `devguard-dashboard` — read-only window over the doctor report and status already returned by the library. `devguard-dashboard --smoke` prints that snapshot and exits without opening a display. It does not start a daemon.
+- `devguard-store` — SQLite file `devguard.db` under the state directory, with migrations for `runs`, `observations`, and `snapshots`. Opening the file applies those migrations. This slice does not collect OS inventory, packages, or sockets, and it does not listen on a port.
 - Versioned `--json` envelopes, redacted logging helpers, unit + CLI smoke tests
 
 **Next priority (given SLM / academic workloads):** health + GPU collectors and run bracketing for paper-ready efficiency tables (TTFT/TPOT annotations + VRAM/power/temp). See [`docs/slm-research-metrics.md`](docs/slm-research-metrics.md).
