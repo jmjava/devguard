@@ -14,6 +14,7 @@ use std::process::ExitCode as StdExitCode;
 use clap::{Parser, Subcommand};
 use devguard_core::config::{Config, ConfigPaths};
 use devguard_core::dev_env::{format_dev_env_human, scan_dev_env};
+use devguard_core::dev_repos::{format_dev_repos_human, scan_dev_repos};
 use devguard_core::doctor::run_doctor;
 use devguard_core::exit::ExitCode;
 use devguard_core::fan::{format_fan_human, scan_fan};
@@ -48,7 +49,8 @@ monitoring, and capturing developer/SLM workstation metrics.\n\n\
 Privileges: ordinary user execution. Mutating commands (backup run/restore) require \
 explicit configuration and confirmation.\n\n\
 Dependencies (feature-detected): nvidia-smi, sensors, git, ss, systemctl, restic/rustic. \
-`dev env` reports version lines for rustc, cargo, python3, node, git, and gcc."
+`dev env` reports version lines for rustc, cargo, python3, node, git, and gcc. \
+`dev repos` reports branch, upstream, dirty, untracked, and unpushed for one path."
 )]
 struct Cli {
     /// Path to config.toml (default: ~/.config/devguard/config.toml)
@@ -91,7 +93,8 @@ enum Commands {
         #[command(subcommand)]
         action: SlmCommands,
     },
-    /// Developer toolchain inventory. Does not install tools, use the network, or audit packages.
+    /// Developer toolchain inventory and one git work-tree reading.
+    /// Does not install tools, fetch, push, use the network, or audit packages.
     Dev {
         #[command(subcommand)]
         action: DevCommands,
@@ -203,6 +206,15 @@ enum DevCommands {
     /// A tool that is not on PATH is unavailable, and that report is not clean.
     /// This command does not install tools, use the network, or run a package audit.
     Env,
+    /// Report branch, upstream, dirty, untracked, and unpushed commits for one path.
+    ///
+    /// A path that is not a git work tree is unavailable, and the result is not clean.
+    /// This command does not fetch, push, or use the network.
+    Repos {
+        /// Path to inspect.
+        #[arg(value_name = "PATH")]
+        path: PathBuf,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -444,6 +456,21 @@ fn run_dev(json: bool, action: DevCommands) -> Result<ExitCode, devguard_core::D
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_dev_env_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        DevCommands::Repos { path } => {
+            let report = scan_dev_repos(&path);
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("dev repos", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("dev repos", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_dev_repos_human(&report));
             }
             Ok(report.exit_code())
         }

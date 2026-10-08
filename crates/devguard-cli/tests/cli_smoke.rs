@@ -1179,6 +1179,123 @@ fn dev_env_missing_tool_on_fixture_path_is_not_clean() {
     assert!(!text.to_ascii_lowercase().contains("healthy"));
 }
 
+fn git_in(dir: &std::path::Path, args: &[&str]) {
+    let text = dir.to_string_lossy();
+    assert!(
+        !text.starts_with("/home/ubuntu/github/jmjava/devguard"),
+        "test path must stay off the devguard checkout: {text}"
+    );
+    let output = Command::new("git")
+        .current_dir(dir)
+        .args([
+            "-c",
+            "user.name=DevGuard",
+            "-c",
+            "user.email=devguard@example.com",
+        ])
+        .args(args)
+        .env("GIT_AUTHOR_NAME", "DevGuard")
+        .env("GIT_AUTHOR_EMAIL", "devguard@example.com")
+        .env("GIT_COMMITTER_NAME", "DevGuard")
+        .env("GIT_COMMITTER_EMAIL", "devguard@example.com")
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .output()
+        .expect("git");
+    assert!(
+        output.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn init_temp_repo(dir: &std::path::Path) {
+    std::fs::create_dir_all(dir).expect("repo dir");
+    git_in(dir, &["init", "-b", "main"]);
+    std::fs::write(dir.join("README"), "hello\n").expect("readme");
+    git_in(dir, &["add", "README"]);
+    git_in(dir, &["commit", "-m", "init"]);
+}
+
+#[test]
+fn dev_repos_help_documents_unavailable_without_network() {
+    devguard()
+        .args(["dev", "repos", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("work tree"))
+        .stdout(predicate::str::contains("fetch"))
+        .stdout(predicate::str::contains("push"))
+        .stdout(predicate::str::contains("network"));
+}
+
+#[test]
+fn dev_repos_json_reads_a_temp_work_tree() {
+    let root = tempdir().expect("tempdir");
+    let repo = root.path().join("repo");
+    init_temp_repo(&repo);
+    std::fs::write(repo.join("README"), "changed\n").expect("edit");
+    std::fs::write(repo.join("extra.txt"), "new\n").expect("untracked");
+    let output = devguard()
+        .args(["--json", "dev", "repos", repo.to_str().expect("utf8")])
+        .output()
+        .expect("dev repos");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(output.status.code(), Some(0), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "dev repos");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["status"], "available");
+    assert_eq!(value["data"]["fetches"], false);
+    assert_eq!(value["data"]["pushes"], false);
+    assert_eq!(value["data"]["uses_network"], false);
+    assert_eq!(value["data"]["branch"], "main");
+    assert!(value["data"].get("upstream").is_none());
+    assert_eq!(value["data"]["dirty"], true);
+    assert_eq!(value["data"]["untracked"], true);
+    assert_eq!(value["data"]["unpushed"], false);
+    let human = devguard()
+        .args(["dev", "repos", repo.to_str().expect("utf8")])
+        .output()
+        .expect("human");
+    let text = String::from_utf8_lossy(&human.stdout);
+    assert!(text.contains("DevGuard dev repos"));
+    assert!(text.contains("branch: main"));
+    assert!(text.contains("dirty: yes"));
+    assert!(text.contains("untracked: yes"));
+    assert!(text.contains("fetches: no"));
+    assert!(text.contains("pushes: no"));
+    assert!(!text.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn dev_repos_non_repo_is_unavailable_and_not_clean() {
+    let root = tempdir().expect("tempdir");
+    let plain = root.path().join("plain");
+    std::fs::create_dir(&plain).expect("plain");
+    let output = devguard()
+        .args(["--json", "dev", "repos", plain.to_str().expect("utf8")])
+        .output()
+        .expect("dev repos");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(output.status.code(), Some(3), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "dev repos");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["status"], "unavailable");
+    assert_eq!(value["data"]["fetches"], false);
+    assert_eq!(value["data"]["pushes"], false);
+    assert_eq!(value["data"]["uses_network"], false);
+    assert!(value["data"].get("branch").is_none());
+    assert!(value["data"].get("dirty").is_none());
+    assert!(value["data"]["detail"]
+        .as_str()
+        .unwrap_or("")
+        .contains("not a git work tree"));
+}
+
 #[test]
 fn health_files_help_documents_the_allowlist() {
     devguard()
