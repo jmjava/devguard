@@ -1,0 +1,11 @@
+# sk-fixture-token-do-not-print
+Include sshd_config.d/*.conf
+
+Port 22
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+
+Match User nobody
+    PasswordAuthentication yes

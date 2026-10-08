@@ -1,0 +1,15 @@
+table inet filter {
+	chain input {
+		type filter hook input priority filter; policy drop;
+		iif "lo" accept
+		tcp dport { 22, 80 } accept
+	}
+	chain forward {
+		type filter hook forward priority filter; policy drop;
+	}
+}
+table ip nat {
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+	}
+}

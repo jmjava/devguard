@@ -2189,3 +2189,199 @@ fn health_packages_human_states_the_safety_limits() {
     assert!(stdout.contains("Pending updates\n  none\n"));
     assert!(!stdout.to_ascii_lowercase().contains("healthy"));
 }
+
+fn firewall_fixtures() -> (PathBuf, PathBuf, PathBuf) {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../devguard-core/fixtures");
+    (
+        root.join("ufw-status-verbose.txt"),
+        root.join("nft-ruleset.txt"),
+        root.join("sshd/sshd_config"),
+    )
+}
+
+#[test]
+fn security_firewall_help_documents_a_read_only_check() {
+    devguard()
+        .args(["security", "firewall", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("ufw enable"))
+        .stdout(predicate::str::contains("ufw disable"))
+        .stdout(predicate::str::contains("nftables"));
+}
+
+#[test]
+fn security_firewall_json_parses_fixtures_without_running_binaries() {
+    let dir = tempdir().expect("tempdir");
+    let marker = dir.path().join("firewall-touched");
+    let script = dir.path().join("must-not-run");
+    std::fs::write(
+        &script,
+        format!("#!/bin/sh\ntouch '{}'\nexit 99\n", marker.display()),
+    )
+    .unwrap();
+    let mut perms = std::fs::metadata(&script).unwrap().permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(&script, perms).unwrap();
+
+    let (ufw, nft, ssh) = firewall_fixtures();
+    let output = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UFW_BIN", &script)
+        .env("DEVGUARD_NFT_BIN", &script)
+        .args(["--json", "security", "firewall"])
+        .output()
+        .expect("security firewall");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(!marker.exists(), "fixture mode ran a firewall binary");
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "security firewall");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["status"], "available");
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["enables_firewall"], false);
+    assert_eq!(value["data"]["disables_firewall"], false);
+    assert_eq!(value["data"]["changes_nftables"], false);
+    assert_eq!(value["data"]["claims_full_audit"], false);
+    assert_eq!(value["data"]["ufw_status"]["state"], "active");
+    assert_eq!(value["data"]["ufw_status"]["rules"][0]["to"], "22/tcp");
+    assert_eq!(
+        value["data"]["ufw_status"]["rules"][0]["action"],
+        "ALLOW IN"
+    );
+    assert_eq!(value["data"]["nft_tables"][0]["family"], "inet");
+    assert_eq!(
+        value["data"]["nft_tables"][0]["chains"][0]["policy"],
+        "drop"
+    );
+    assert_eq!(
+        value["data"]["ssh_config"]["listen_addresses"][0],
+        "127.0.0.1"
+    );
+    assert_eq!(value["data"]["ssh_config"]["beyond_localhost"], false);
+    assert_eq!(value["data"]["ssh_config"]["password_authentication"], "no");
+    assert_eq!(
+        value["data"]["ssh_config"]["permit_root_login"],
+        "prohibit-password"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("sk-fixture-token-do-not-print"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn security_firewall_bins_receive_only_readonly_args() {
+    let dir = tempdir().expect("tempdir");
+    let log = dir.path().join("argv.txt");
+    let (ufw, nft, ssh) = firewall_fixtures();
+    let script = dir.path().join("probe");
+    let body = format!(
+        "#!/bin/sh\nprintf '%s\\n' \"$*\" >> '{}'\nif [ \"$1\" = status ] && [ \"$2\" = verbose ] && [ \"$#\" -eq 2 ]; then\n  cat '{}'\n  exit 0\nfi\nif [ \"$1\" = list ] && [ \"$2\" = ruleset ] && [ \"$#\" -eq 2 ]; then\n  cat '{}'\n  exit 0\nfi\nprintf '%s\\n' \"refused $*\" >> '{}'\nexit 99\n",
+        log.display(),
+        ufw.display(),
+        nft.display(),
+        log.display()
+    );
+    std::fs::write(&script, body).unwrap();
+    let mut perms = std::fs::metadata(&script).unwrap().permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(&script, perms).unwrap();
+
+    let output = devguard()
+        .env_remove("DEVGUARD_UFW_STATUS")
+        .env_remove("DEVGUARD_NFT_RULESET")
+        .env("DEVGUARD_UFW_BIN", &script)
+        .env("DEVGUARD_NFT_BIN", &script)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .args(["security", "firewall"])
+        .output()
+        .expect("security firewall");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stdout={}\nstderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let argv = std::fs::read_to_string(&log).unwrap();
+    assert_eq!(argv, "status verbose\nlist ruleset\n");
+    assert!(!argv.contains("enable"));
+    assert!(!argv.contains("disable"));
+    assert!(!argv.contains("flush"));
+    assert!(!argv.contains("sudo"));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard security firewall"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("enables firewall: no"));
+    assert!(stdout.contains("disables firewall: no"));
+    assert!(stdout.contains("changes nftables: no"));
+    assert!(stdout.contains("clean: yes"));
+    assert!(stdout.contains("beyond localhost: no"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn security_firewall_missing_ufw_is_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    let (_ufw, nft, ssh) = firewall_fixtures();
+    let output = devguard()
+        .env_remove("DEVGUARD_UFW_STATUS")
+        .env("DEVGUARD_UFW_BIN", dir.path().join("missing-ufw"))
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .args(["--json", "security", "firewall"])
+        .output()
+        .expect("security firewall");
+    assert_eq!(output.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["command"], "security firewall");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["status"], "unavailable");
+    assert_eq!(value["data"]["ufw"]["status"], "unavailable");
+    assert_eq!(value["data"]["nftables"]["status"], "available");
+    assert_eq!(value["data"]["ssh"]["status"], "available");
+    assert!(value["data"]["ufw_status"].is_null());
+    assert_eq!(value["data"]["enables_firewall"], false);
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap_or("").contains("ufw unavailable")));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn security_firewall_unreadable_sshd_is_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    let (ufw, nft, _ssh) = firewall_fixtures();
+    let output = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env(
+            "DEVGUARD_SSHD_CONFIG",
+            dir.path().join("missing-sshd_config"),
+        )
+        .args(["security", "firewall"])
+        .output()
+        .expect("security firewall");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard security firewall"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("changes nftables: no"));
+    assert!(stdout.contains("clean: no"));
+    assert!(stdout.contains("unreadable"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
