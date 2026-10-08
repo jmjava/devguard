@@ -9,6 +9,7 @@ DevGuard observes; it does not remediate by default.
 - No listening sockets or agents in M0–M5.
 - Backup credentials stay outside config (engine password file / OS mechanisms).
 - Failures surface as `unavailable` / warnings, never as clean.
+- `security paths` checks only `security.sensitive_path_allowlist`. It reads mode bits and, when the local account database has them, owner and group names. It does not recurse, use sudo, or read file contents. An empty allowlist is not a clean disk scan.
 
 ## Downstairs WSL helper
 
