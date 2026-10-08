@@ -1419,6 +1419,160 @@ fn dev_repos_scan_missing_git_or_unreadable_path_is_not_clean() {
     assert_eq!(value["data"]["roots"][0]["status"], "unavailable");
 }
 
+fn write_audit_tool(dir: &std::path::Path, name: &str) {
+    let path = dir.join(name);
+    std::fs::write(
+        &path,
+        "#!/bin/sh\n: > ran-marker\nprintf '%s\\n' 'token=ghp_SuperSecretTokenValue ghp_BareTokenValue99'\n",
+    )
+    .expect("fixture");
+    let mut perms = std::fs::metadata(&path).expect("meta").permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(&path, perms).expect("chmod");
+}
+
+fn fill_audit_tools(dir: &std::path::Path) {
+    for name in ["cargo-audit", "pip-audit", "npm", "mvn"] {
+        write_audit_tool(dir, name);
+    }
+}
+
+fn assert_token_hidden(text: &str) {
+    assert!(!text.contains("SuperSecret"), "{text}");
+    assert!(!text.contains("BareToken"), "{text}");
+    assert!(!text.contains("ghp_"), "{text}");
+}
+
+#[test]
+fn dev_deps_audit_help_documents_online_and_unavailable() {
+    devguard()
+        .args(["dev", "deps", "audit", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("online"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("network"))
+        .stdout(predicate::str::contains("manifest"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("install"));
+}
+
+#[test]
+fn dev_deps_audit_without_online_does_not_run_tools_or_print_a_manifest() {
+    let dir = tempdir().expect("tempdir");
+    fill_audit_tools(dir.path());
+    let secret = "token=ghp_SuperSecretTokenValue";
+    std::fs::write(dir.path().join("package.json"), secret).expect("manifest");
+    std::fs::write(dir.path().join("Cargo.toml"), secret).expect("manifest");
+    let output = devguard()
+        .current_dir(dir.path())
+        .env("PATH", dir.path())
+        .args(["--json", "dev", "deps", "audit"])
+        .output()
+        .expect("dev deps audit");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(0), "{stdout}{stderr}");
+    assert_token_hidden(&stdout);
+    assert_token_hidden(&stderr);
+    assert!(!dir.path().join("ran-marker").exists());
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "dev deps audit");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["online"], false);
+    assert_eq!(value["data"]["uses_network"], false);
+    assert_eq!(value["data"]["transmits_manifest"], false);
+    assert_eq!(value["data"]["installs_tools"], false);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["network_audit"], "not_requested");
+    let adapters = value["data"]["adapters"].as_array().expect("adapters");
+    assert_eq!(adapters.len(), 4);
+    for adapter in adapters {
+        assert_eq!(adapter["status"], "available");
+        assert_eq!(adapter["detail"], "network audit was not requested");
+        assert!(adapter.get("summary").is_none());
+    }
+}
+
+#[test]
+fn dev_deps_audit_missing_tool_is_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    write_audit_tool(dir.path(), "npm");
+    let output = devguard()
+        .current_dir(dir.path())
+        .env("PATH", dir.path())
+        .args(["--json", "dev", "deps", "audit"])
+        .output()
+        .expect("dev deps audit");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(output.status.code(), Some(3), "{stdout}");
+    assert!(!dir.path().join("ran-marker").exists());
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "dev deps audit");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["network_audit"], "not_requested");
+    assert_eq!(value["data"]["uses_network"], false);
+    assert_eq!(value["data"]["transmits_manifest"], false);
+    let cargo = value["data"]["adapters"]
+        .as_array()
+        .expect("adapters")
+        .iter()
+        .find(|adapter| adapter["name"] == "cargo-audit")
+        .expect("cargo-audit");
+    assert_eq!(cargo["status"], "unavailable");
+    assert!(cargo.get("summary").is_none());
+    let human = devguard()
+        .env("PATH", dir.path())
+        .args(["dev", "deps", "audit"])
+        .output()
+        .expect("human");
+    let text = String::from_utf8_lossy(&human.stdout);
+    assert_eq!(human.status.code(), Some(3), "{text}");
+    assert!(text.contains("DevGuard dev deps"));
+    assert!(text.contains("clean: no"));
+    assert!(text.contains("network audit: not requested"));
+    assert!(text.contains("uses network: no"));
+    assert!(text.contains("`cargo-audit` is not on PATH"));
+    assert_token_hidden(&text);
+}
+
+#[test]
+fn dev_deps_audit_online_redacts_fixture_output() {
+    let dir = tempdir().expect("tempdir");
+    fill_audit_tools(dir.path());
+    std::fs::write(
+        dir.path().join("package.json"),
+        "token=ghp_SuperSecretTokenValue",
+    )
+    .expect("manifest");
+    let output = devguard()
+        .current_dir(dir.path())
+        .env("PATH", dir.path())
+        .args(["--json", "dev", "deps", "audit", "--online"])
+        .output()
+        .expect("dev deps audit");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(0), "{stdout}{stderr}");
+    assert!(dir.path().join("ran-marker").exists());
+    assert_token_hidden(&stdout);
+    assert_token_hidden(&stderr);
+    assert!(stdout.contains("[REDACTED]"));
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "dev deps audit");
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["online"], true);
+    assert_eq!(value["data"]["uses_network"], true);
+    assert_eq!(value["data"]["transmits_manifest"], true);
+    assert_eq!(value["data"]["network_audit"], "ran");
+    let adapters = value["data"]["adapters"].as_array().expect("adapters");
+    assert!(adapters
+        .iter()
+        .all(|adapter| adapter["status"] == "available"));
+}
+
 #[test]
 fn health_files_help_documents_the_allowlist() {
     devguard()

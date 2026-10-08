@@ -14,6 +14,7 @@ use std::process::ExitCode as StdExitCode;
 
 use clap::{Parser, Subcommand};
 use devguard_core::config::{Config, ConfigPaths};
+use devguard_core::dev_deps::{format_deps_audit_human, scan_deps_audit};
 use devguard_core::dev_env::{format_dev_env_human, scan_dev_env};
 use devguard_core::dev_repos::{format_dev_repos_human, scan_dev_repos};
 use devguard_core::doctor::run_doctor;
@@ -56,7 +57,10 @@ Dependencies (feature-detected): nvidia-smi, sensors, git, ss, systemctl, ufw, n
 `dev env` reports version lines for rustc, cargo, python3, node, git, and gcc. \
 `dev repos scan` reads dirty, untracked, branch, upstream, and unpublished commits \
 for git work trees under an explicit path or dev.repo_roots. It does not fetch, \
-pull, push, or walk the home directory."
+pull, push, or walk the home directory. \
+`dev deps audit` checks local cargo-audit, Python, npm, and Maven or Gradle \
+adapters. It does not contact the network or transmit a manifest unless `--online` \
+is set. A missing local tool is unavailable, and that result is not clean."
 )]
 struct Cli {
     /// Path to config.toml (default: ~/.config/devguard/config.toml)
@@ -104,8 +108,10 @@ enum Commands {
         #[command(subcommand)]
         action: SlmCommands,
     },
-    /// Developer toolchain inventory and an opt-in git repository scan.
-    /// Does not install tools, fetch, pull, push, use the network, or audit packages.
+    /// Developer toolchain inventory, an opt-in git scan, and an opt-in dependency audit.
+    ///
+    /// `dev env` and `dev repos scan` do not use the network. `dev deps audit` does not
+    /// contact the network or transmit a manifest unless `--online` is set.
     Dev {
         #[command(subcommand)]
         action: DevCommands,
@@ -259,6 +265,28 @@ enum DevCommands {
     Repos {
         #[command(subcommand)]
         action: ReposCommands,
+    },
+    /// Opt-in dependency audit adapters. Network scans require `--online`.
+    Deps {
+        #[command(subcommand)]
+        action: DepsCommands,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum DepsCommands {
+    /// Check local cargo-audit, Python, npm, and Maven or Gradle audit tools.
+    ///
+    /// Without `--online` the network audit is not requested, no networked tool
+    /// runs, and no private manifest is transmitted. A missing local tool is
+    /// unavailable, and that result is not clean. This command does not install
+    /// tools and does not use sudo. `--online` runs the local tools; they may
+    /// contact the network and may send dependency names. `clean` means every
+    /// local adapter was found. It does not mean the tree has no advisories.
+    Audit {
+        /// Run the local audit tools. They may contact the network and may send dependency names.
+        #[arg(long)]
+        online: bool,
     },
 }
 
@@ -549,6 +577,25 @@ fn run_dev(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_dev_repos_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        DevCommands::Deps {
+            action: DepsCommands::Audit { online },
+        } => {
+            let path = std::env::var_os("PATH").unwrap_or_default();
+            let workdir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            let report = scan_deps_audit(&path, online, &workdir);
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("dev deps audit", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("dev deps audit", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_deps_audit_human(&report));
             }
             Ok(report.exit_code())
         }

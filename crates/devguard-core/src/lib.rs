@@ -2,6 +2,7 @@
 
 pub mod collector;
 pub mod config;
+pub mod dev_deps;
 pub mod dev_env;
 pub mod dev_repos;
 pub mod doctor;
@@ -37,6 +38,9 @@ pub mod watch;
 
 pub use collector::{Collection, CollectionStatus, Collector};
 pub use config::{Config, ConfigError, ConfigPaths};
+pub use dev_deps::{
+    format_deps_audit_human, scan_deps_audit, AuditAdapter, DepsAuditReport, NetworkAudit,
+};
 pub use dev_env::{format_dev_env_human, scan_dev_env, version_line, DevEnvReport};
 pub use dev_repos::{format_dev_repos_human, scan_dev_repos, DevReposReport};
 pub use doctor::{DoctorReport, PrerequisiteCheck, PrerequisiteStatus};

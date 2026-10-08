@@ -90,7 +90,7 @@ devguard backup restore --snapshot ID --target PATH --dry-run
 
 devguard dev env [--json]
 devguard dev repos scan [PATH...] [--json]
-devguard dev deps audit [--json]        # opt-in tooling integrations
+devguard dev deps audit [--online] [--json]  # network audit only with --online
 ```
 
 CLI conventions:
@@ -233,6 +233,7 @@ Severity categories: `info`, `warning`, `critical`, `unknown`; every rule is doc
 - Identify dirty worktrees, untracked files, current branch, upstream status and unpublished local commits. Avoid remote network access by default.
 - Inventory compilers, SDKs and package managers. Output a reproducibility report, not a claim of bit-for-bit reproducibility.
 - Optional audit adapters: `cargo audit`, Python audit tool, npm audit, Maven/Gradle dependency scanners. Network scans must be opt-in; avoid transmitting private manifests without clear disclosure.
+- `dev deps audit` checks local adapters for `cargo-audit`, a Python audit tool (`pip-audit`, or `safety` when `pip-audit` is absent), `npm`, and Maven (`mvn`) or Gradle (`gradle`). Without `--online` it reports that the network audit was not requested and does not run those tools, so it does not contact the network or transmit a private manifest. A missing local tool is `unavailable`, and that result is not clean. The command does not install audit tools and does not use sudo. `--online` runs the local tools; those tools may contact the network and may send dependency names. Token-like strings in tool output are redacted. `clean` means every local adapter was found. It does not mean the tree has no advisories.
 - Reuse inventory in pre-upgrade/post-upgrade comparisons.
 
 ### F. Multi-Node / Halo Cluster (future)
