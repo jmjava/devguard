@@ -13,7 +13,7 @@ Working today:
 - `devguard --help`
 - `devguard doctor` — prerequisites, permissions, **NVIDIA/SLM GPU coverage**
 - `devguard config init` / `devguard config validate`
-- `devguard status` — placeholder until collectors persist scans
+- `devguard status` — newest stored snapshot: id, label, `created_at`, and whether coverage was partial. No stored snapshot exits partial. Does not rescan the host, use sudo, or open a network connection.
 - `devguard health fan` — read-only observations and hypotheses. Process names only. Missing `sensors` or `nvidia-smi` is `unavailable`, never a clean result. Does not use sudo or change fan curves.
 - `devguard health sensors` — package, CPU, and board temperatures plus fan RPM from hwmon files. If `sensors` is missing and no hwmon file is readable, the reading is `unavailable` and not clean. Does not install packages, use sudo, load modules, or change a fan curve.
 - `devguard health os` — kernel release, boot id, and uptime from `/proc`. The hostname is stored only as a privacy-preserving hash. A missing `/proc` source is `unavailable` and not clean. Does not use sudo, open a port, or collect package lists.

@@ -365,6 +365,23 @@ impl Store {
         }
         Ok(snapshots)
     }
+
+    /// Newest snapshot: `created_at` descending, then `id` descending.
+    ///
+    /// This is the last row of [`Store::list_snapshots`]. An empty table is `None`.
+    /// The query does not scan the host.
+    pub fn latest_snapshot(&self) -> Result<Option<Snapshot>> {
+        self.conn
+            .query_row(
+                "SELECT id, created_at, label, run_id, payload FROM snapshots
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT 1",
+                params![],
+                snapshot_from_row,
+            )
+            .optional()
+            .map_err(StoreError::from)
+    }
 }
 
 fn snapshot_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Snapshot> {
@@ -571,6 +588,28 @@ mod tests {
             .map(|row| row.id)
             .collect();
         assert_eq!(ids, vec!["snap-a", "snap-z", "snap-b"]);
+        let latest = store.latest_snapshot().expect("latest").expect("row");
+        assert_eq!(latest.id, "snap-b");
+    }
+
+    #[test]
+    fn latest_snapshot_breaks_timestamp_ties_by_id() {
+        let file = tempfile::NamedTempFile::new().expect("temp file");
+        let store = Store::open(file.path()).expect("open");
+        assert!(store.latest_snapshot().expect("empty").is_none());
+        for id in ["snap-m", "snap-z", "snap-a"] {
+            store
+                .insert_snapshot(&Snapshot {
+                    id: id.into(),
+                    created_at: "2026-10-08T00:00:01Z".into(),
+                    label: Some("pre-upgrade".into()),
+                    run_id: None,
+                    payload: "{}".into(),
+                })
+                .expect("insert");
+        }
+        let latest = store.latest_snapshot().expect("latest").expect("row");
+        assert_eq!(latest.id, "snap-z");
     }
 
     #[test]

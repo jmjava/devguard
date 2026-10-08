@@ -175,6 +175,75 @@ pub fn parse_payload(text: &str) -> Result<SnapshotPayload, serde_json::Error> {
     Ok(payload)
 }
 
+/// Newest stored snapshot as `devguard status` reports it.
+///
+/// `partial` is true when the stored payload is not clean. An unreadable
+/// payload is partial. Building this value does not scan the host.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StatusSnapshot {
+    pub id: String,
+    pub created_at: String,
+    pub label: Option<String>,
+    pub partial: bool,
+}
+
+/// Coverage flag for one stored row. An unreadable payload is partial.
+pub fn status_from_stored(
+    id: String,
+    created_at: String,
+    label: Option<String>,
+    payload: &str,
+) -> StatusSnapshot {
+    let summary = summary_from_stored(id, created_at, label, payload);
+    StatusSnapshot {
+        id: summary.id,
+        created_at: summary.created_at,
+        label: summary.label,
+        partial: !summary.clean,
+    }
+}
+
+/// Exit code for `devguard status`. No snapshot, and a partial snapshot, are partial.
+pub fn status_exit(snapshot: Option<&StatusSnapshot>) -> ExitCode {
+    match snapshot {
+        Some(row) if !row.partial => ExitCode::Success,
+        _ => ExitCode::Partial,
+    }
+}
+
+/// Warnings for a missing snapshot or partial coverage.
+pub fn status_warnings(snapshot: Option<&StatusSnapshot>) -> Vec<String> {
+    match snapshot {
+        None => vec!["no snapshots stored".into()],
+        Some(row) if row.partial => vec!["snapshot coverage is partial".into()],
+        Some(_) => Vec::new(),
+    }
+}
+
+/// Human view of the newest stored snapshot. Does not claim a host rescan.
+pub fn format_status_human(snapshot: Option<&StatusSnapshot>) -> String {
+    let mut out = String::from("DevGuard status\n");
+    match snapshot {
+        None => {
+            out.push_str("  snapshots: none\n");
+            out.push_str("  no snapshots stored\n");
+        }
+        Some(row) => {
+            let label = row.label.as_deref().unwrap_or("(none)");
+            let coverage = if row.partial { "partial" } else { "complete" };
+            out.push_str(&format!(
+                "  id: {id}\n  created: {created}\n  label: {label}\n  coverage: {coverage}\n",
+                id = row.id,
+                created = row.created_at,
+            ));
+        }
+    }
+    out.push_str("  rescans host: no\n");
+    out.push_str("  uses sudo: no\n");
+    out.push_str("  opens a network connection: no\n");
+    out
+}
+
 /// List-row summary. An unreadable payload is partial.
 pub fn summary_from_stored(
     id: String,
@@ -900,6 +969,57 @@ mod tests {
     use crate::packages::{CoverageStatus as PackageStatus, SourceCoverage};
     use crate::ports::CoverageStatus as PortStatus;
     use crate::units::CoverageStatus as UnitStatus;
+
+    #[test]
+    fn status_reports_the_stored_timestamp_and_partial_coverage() {
+        let clean = full_payload("pre-upgrade");
+        let clean_text = serde_json::to_string(&clean).expect("json");
+        let row = status_from_stored(
+            "snap-new".into(),
+            "2026-10-08T00:00:02Z".into(),
+            clean.label.clone(),
+            &clean_text,
+        );
+        assert!(!row.partial);
+        assert_eq!(row.label.as_deref(), Some("pre-upgrade"));
+        assert_eq!(status_exit(Some(&row)), ExitCode::Success);
+        assert!(status_warnings(Some(&row)).is_empty());
+        let text = format_status_human(Some(&row));
+        assert!(text.contains("id: snap-new\n"));
+        assert!(text.contains("created: 2026-10-08T00:00:02Z\n"));
+        assert!(text.contains("label: pre-upgrade\n"));
+        assert!(text.contains("coverage: complete\n"));
+        assert!(text.contains("rescans host: no\n"));
+        assert!(text.contains("uses sudo: no\n"));
+        assert!(text.contains("opens a network connection: no\n"));
+
+        let mut partial = clean;
+        partial.collectors.packages.report.clean = false;
+        let partial_text = serde_json::to_string(&partial).expect("json");
+        let partial_row = status_from_stored(
+            "snap-old".into(),
+            "2026-10-08T00:00:01Z".into(),
+            None,
+            &partial_text,
+        );
+        assert!(partial_row.partial);
+        assert_eq!(status_exit(Some(&partial_row)), ExitCode::Partial);
+        assert_eq!(
+            status_warnings(Some(&partial_row)),
+            vec!["snapshot coverage is partial".to_string()]
+        );
+        assert!(format_status_human(Some(&partial_row)).contains("label: (none)\n"));
+        assert!(format_status_human(Some(&partial_row)).contains("coverage: partial\n"));
+
+        let unreadable =
+            status_from_stored("snap-bad".into(), "2026-10-08T00:00:00Z".into(), None, "{}");
+        assert!(unreadable.partial);
+        assert_eq!(status_exit(None), ExitCode::Partial);
+        let empty = format_status_human(None);
+        assert!(empty.contains("snapshots: none\n"));
+        assert!(empty.contains("no snapshots stored\n"));
+        assert!(!empty.contains("coverage: complete"));
+    }
 
     #[test]
     fn unavailable_collector_stays_in_the_payload_and_the_snapshot_is_partial() {

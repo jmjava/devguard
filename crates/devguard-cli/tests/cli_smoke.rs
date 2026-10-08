@@ -4392,3 +4392,191 @@ fn backup_plan_redacts_a_repository_password_and_does_not_call_engines() {
     assert!(stdout.contains("runs engine: no"));
     assert!(!marker.exists(), "backup plan invoked a stub binary");
 }
+#[test]
+fn status_with_no_snapshots_is_partial_and_does_not_touch_the_home_database() {
+    let dir = tempdir().expect("tempdir");
+    let home_db = home_devguard_db();
+    let before = db_stamp(&home_db);
+
+    let output = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .arg("status")
+        .output()
+        .expect("status");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard status"));
+    assert!(stdout.contains("snapshots: none"));
+    assert!(stdout.contains("no snapshots stored"));
+    assert!(stdout.contains("rescans host: no"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("opens a network connection: no"));
+    assert!(!stdout.contains("No scans recorded yet"));
+    assert!(!dir.path().join("devguard.db").exists());
+    assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
+
+    let json = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "status"])
+        .output()
+        .expect("status json");
+    assert_eq!(json.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&json.stdout).expect("json");
+    assert_eq!(value["command"], "status");
+    assert_eq!(value["ok"], true);
+    assert!(value["data"]["snapshot"].is_null());
+    assert_eq!(value["data"]["rescans_host"], false);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["opens_network"], false);
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str() == Some("no snapshots stored")));
+    assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
+}
+
+#[test]
+fn status_reports_the_newest_stored_snapshot_without_rescanning() {
+    let dir = tempdir().expect("tempdir");
+    let home_db = home_devguard_db();
+    let before = db_stamp(&home_db);
+    let db_path = dir.path().join("devguard.db");
+    let store = devguard_store::Store::open(&db_path).expect("open temp db");
+    store
+        .insert_snapshot(&devguard_store::Snapshot {
+            id: "snap-old".into(),
+            created_at: "2026-10-08T00:00:01Z".into(),
+            label: Some("old-label".into()),
+            run_id: None,
+            payload: r#"{"clean":true}"#.into(),
+        })
+        .expect("insert old");
+    store
+        .insert_snapshot(&devguard_store::Snapshot {
+            id: "snap-tied-a".into(),
+            created_at: "2026-10-08T00:00:02Z".into(),
+            label: Some("tied".into()),
+            run_id: None,
+            payload: "{}".into(),
+        })
+        .expect("insert tie a");
+    store
+        .insert_snapshot(&devguard_store::Snapshot {
+            id: "snap-tied-z".into(),
+            created_at: "2026-10-08T00:00:02Z".into(),
+            label: Some("pre-upgrade".into()),
+            run_id: None,
+            payload: clean_snapshot_payload(),
+        })
+        .expect("insert newest");
+    drop(store);
+
+    let output = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "status"])
+        .output()
+        .expect("status");
+    assert_eq!(output.status.code(), Some(0), "{:?}", output.stdout);
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["command"], "status");
+    assert_eq!(value["data"]["snapshot"]["id"], "snap-tied-z");
+    assert_eq!(
+        value["data"]["snapshot"]["created_at"],
+        "2026-10-08T00:00:02Z"
+    );
+    assert_eq!(value["data"]["snapshot"]["label"], "pre-upgrade");
+    assert_eq!(value["data"]["snapshot"]["partial"], false);
+    assert_eq!(value["data"]["rescans_host"], false);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["opens_network"], false);
+    assert!(value.get("warnings").is_none() || value["warnings"].as_array().unwrap().is_empty());
+    assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
+
+    store_partial_latest(dir.path());
+    let partial = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .arg("status")
+        .output()
+        .expect("partial status");
+    assert_eq!(partial.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&partial.stdout);
+    assert!(stdout.contains("id: snap-partial\n"));
+    assert!(stdout.contains("created: 2026-10-08T00:00:03Z\n"));
+    assert!(stdout.contains("label: post-upgrade\n"));
+    assert!(stdout.contains("coverage: partial\n"));
+    assert!(stdout.contains("rescans host: no\n"));
+    assert!(!stdout.contains("snap-tied-z"));
+    assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
+}
+
+fn store_partial_latest(state_dir: &std::path::Path) {
+    let store = devguard_store::Store::open(&state_dir.join("devguard.db")).expect("reopen");
+    store
+        .insert_snapshot(&devguard_store::Snapshot {
+            id: "snap-partial".into(),
+            created_at: "2026-10-08T00:00:03Z".into(),
+            label: Some("post-upgrade".into()),
+            run_id: None,
+            payload: r#"{"clean":false}"#.into(),
+        })
+        .expect("insert partial");
+}
+
+fn clean_snapshot_payload() -> String {
+    r#"{
+      "label": "pre-upgrade",
+      "clean": true,
+      "uses_sudo": false,
+      "installs_packages": false,
+      "opens_network": false,
+      "collectors": {
+        "os": {"status": "available", "report": {
+          "uses_sudo": false, "opens_port": false, "collects_packages": false, "clean": true,
+          "kernel_release": {"status": "available", "value": "6.8.0"},
+          "boot_id": {"status": "available", "value": "boot"},
+          "uptime_seconds": {"status": "available", "value": 1.0},
+          "hostname_hash": {"status": "available", "value": "hn"}
+        }},
+        "packages": {"status": "available", "report": {
+          "uses_sudo": false, "changes_packages": false, "clean": true, "status": "available",
+          "installed": {"status": "available", "detail": "fixture"},
+          "updates": {"status": "available", "detail": "fixture"},
+          "packages": [], "pending": []
+        }},
+        "units": {"status": "available", "report": {
+          "uses_sudo": false, "starts_units": false, "stops_units": false,
+          "enables_units": false, "disables_units": false, "clean": true, "status": "available",
+          "systemctl": {"status": "available", "detail": "fixture"}, "units": []
+        }},
+        "ports": {"status": "available", "report": {
+          "opens_port": false, "scans_remote": false, "collects_arguments": false, "clean": true,
+          "ss": {"status": "available", "detail": "fixture"}, "sockets": [], "unparsed_rows": 0
+        }},
+        "gpu_id": {"status": "available", "report": {
+          "uses_sudo": false, "loads_modules": false, "clean": true,
+          "nvidia_smi": {"status": "available", "detail": "fixture"}, "gpus": []
+        }},
+        "dev_env": {"status": "available", "report": {
+          "installs_tools": false, "uses_network": false, "runs_package_audit": false,
+          "clean": true, "tools": []
+        }},
+        "files": {"status": "available", "report": {
+          "persists_contents": false, "prints_contents": false, "hash_algorithm": "sha256",
+          "clean": true, "files": []
+        }},
+        "health": {"status": "available", "report": {
+          "uses_sudo": false, "sends_signals": false, "loads_modules": false, "writes_bios": false,
+          "clean": true,
+          "cpu_count": {"status": "available", "value": 1},
+          "memory_used_bytes": {"status": "available", "value": 1},
+          "memory_total_bytes": {"status": "available", "value": 1},
+          "swap_used_bytes": {"status": "available", "value": 0},
+          "disk_free_bytes": {"status": "available", "value": 1},
+          "uptime_seconds": {"status": "available", "value": 1.0},
+          "processes": {"status": "available", "names": []}
+        }}
+      }
+    }"#
+    .into()
+}
