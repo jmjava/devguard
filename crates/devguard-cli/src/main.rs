@@ -132,7 +132,10 @@ enum ConfigCommands {
         #[arg(long)]
         force: bool,
     },
-    /// Validate configuration and report missing optional paths
+    /// Validate configuration and report missing optional paths.
+    ///
+    /// A negative `warn_*` threshold is rejected. Evaluating an optional
+    /// threshold is a rule of thumb, not a hardware guarantee.
     Validate,
 }
 

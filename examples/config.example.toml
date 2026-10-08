@@ -19,6 +19,11 @@ warn_cpu_temp_c = 85
 warn_gpu_temp_c = 85
 warn_gpu_mem_percent = 90
 warn_mem_percent = 90
+# Optional rules of thumb. A missing key emits no warning.
+# warn_cpu_load = 8.0
+# warn_temp_c = 85
+# warn_disk_free_bytes = 10000000000
+# warn_mem_used_fraction = 0.9
 
 [security]
 check_ssh_logs = true
