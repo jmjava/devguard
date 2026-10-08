@@ -25,7 +25,8 @@ fn help_lists_core_commands() {
         .stdout(predicate::str::contains("gpu"))
         .stdout(predicate::str::contains("remote"))
         .stdout(predicate::str::contains("slm"))
-        .stdout(predicate::str::contains("dev"));
+        .stdout(predicate::str::contains("dev"))
+        .stdout(predicate::str::contains("security"));
 }
 
 #[test]
@@ -1392,6 +1393,117 @@ fn health_files_missing_path_is_unavailable_and_not_clean() {
     assert!(stdout.contains("sha256="));
     assert!(!stdout.contains(token), "{stdout}");
     assert!(!stdout.contains("SuperSecret"), "{stdout}");
+}
+
+#[test]
+fn security_paths_help_documents_the_allowlist() {
+    devguard()
+        .args(["security", "paths", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("sensitive_path_allowlist"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("recurse"))
+        .stdout(predicate::str::contains("contents"));
+}
+
+#[test]
+fn security_paths_json_reports_mode_and_omits_token_text() {
+    let dir = tempdir().unwrap();
+    let plain = dir.path().join("plain.toml");
+    let token = "token=ghp_SuperSecretTokenValue";
+    std::fs::write(&plain, token.as_bytes()).unwrap();
+    let mut perms = std::fs::metadata(&plain).unwrap().permissions();
+    perms.set_mode(0o640);
+    std::fs::set_permissions(&plain, perms).unwrap();
+    let config = dir.path().join("config.toml");
+    std::fs::write(
+        &config,
+        format!(
+            "schema_version = 1\n\n[security]\nsensitive_path_allowlist = [{plain:?}]\n",
+            plain = plain.display().to_string(),
+        ),
+    )
+    .unwrap();
+
+    let output = devguard()
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "security",
+            "paths",
+        ])
+        .output()
+        .expect("security paths");
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains(token), "{stdout}");
+    assert!(!stdout.contains("SuperSecret"), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "security paths");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["reads_contents"], false);
+    assert_eq!(value["data"]["prints_contents"], false);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["recursive"], false);
+    let paths = value["data"]["paths"].as_array().expect("paths");
+    assert_eq!(paths.len(), 1);
+    assert_eq!(paths[0]["status"], "available");
+    assert_eq!(paths[0]["path"], plain.display().to_string());
+    assert_eq!(paths[0]["mode"], "0640");
+    assert!(paths[0]["owner"].as_str().is_some());
+    assert!(value["data"].get("contents").is_none());
+}
+
+#[test]
+fn security_paths_missing_path_is_unavailable_and_not_clean() {
+    let dir = tempdir().unwrap();
+    let secret = dir.path().join("secret.env");
+    let missing = dir.path().join("absent.toml");
+    let token = "token=ghp_SuperSecretTokenValue";
+    std::fs::write(&secret, token.as_bytes()).unwrap();
+    let config = dir.path().join("config.toml");
+    std::fs::write(
+        &config,
+        format!(
+            "schema_version = 1\n\n[security]\nsensitive_path_allowlist = [{secret:?}, {missing:?}]\n",
+            secret = secret.display().to_string(),
+            missing = missing.display().to_string(),
+        ),
+    )
+    .unwrap();
+
+    let output = devguard()
+        .args(["--config", config.to_str().unwrap(), "security", "paths"])
+        .output()
+        .expect("security paths");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard security paths"));
+    assert!(stdout.contains("unavailable (missing)"));
+    assert!(stdout.contains("clean: no"));
+    assert!(stdout.contains("mode="));
+    assert!(!stdout.contains(token), "{stdout}");
+    assert!(!stdout.contains("SuperSecret"), "{stdout}");
+}
+
+#[test]
+fn security_paths_empty_allowlist_is_not_a_clean_disk_scan() {
+    let dir = tempdir().unwrap();
+    let config = dir.path().join("config.toml");
+    std::fs::write(&config, "schema_version = 1\n").unwrap();
+    let output = devguard()
+        .args(["--config", config.to_str().unwrap(), "security", "paths"])
+        .output()
+        .expect("security paths");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("No paths were configured."));
+    assert!(stdout.contains("clean: no"));
+    assert!(stdout.contains("recursive scan: no"));
 }
 
 #[test]

@@ -200,6 +200,9 @@ pub struct SecurityConfig {
     pub check_firewall: bool,
     #[serde(default = "default_true")]
     pub check_listening_ports: bool,
+    /// Omitted key: empty allowlist. That checks no paths.
+    #[serde(default)]
+    pub sensitive_path_allowlist: Vec<String>,
 }
 
 impl Default for SecurityConfig {
@@ -208,6 +211,7 @@ impl Default for SecurityConfig {
             check_ssh_logs: true,
             check_firewall: true,
             check_listening_ports: true,
+            sensitive_path_allowlist: Vec::new(),
         }
     }
 }
@@ -567,6 +571,14 @@ impl Config {
                 warnings.push(format!("snapshot allowlist path does not exist: {raw}"));
             }
         }
+        for raw in &self.security.sensitive_path_allowlist {
+            let path = Self::expand_user_path(raw)?;
+            if !path.exists() {
+                warnings.push(format!(
+                    "security.sensitive_path_allowlist path does not exist: {raw}"
+                ));
+            }
+        }
         for raw in &self.dev.repo_roots {
             let path = Self::expand_user_path(raw)?;
             if !path.exists() {
@@ -649,6 +661,8 @@ warn_mem_percent = {mem}
 check_ssh_logs = true
 check_firewall = true
 check_listening_ports = true
+# Allowlisted paths only. An empty list checks nothing; it is not a disk scan.
+sensitive_path_allowlist = {path_allowlist}
 
 [backup]
 engine = "restic"
@@ -686,6 +700,7 @@ suggested_cooldown_seconds = 10
         interval = config.general.collect_interval_seconds,
         retention = config.database.retention_days,
         allowlist = toml_string_array(&config.snapshot.config_hash_allowlist),
+        path_allowlist = toml_string_array(&config.security.sensitive_path_allowlist),
         cpu_temp = config.health.warn_cpu_temp_c,
         gpu_temp = config.health.warn_gpu_temp_c,
         gpu_mem = config.health.warn_gpu_mem_percent,
@@ -826,5 +841,38 @@ mod tests {
         let section = Config::parse_toml("schema_version = 1\n\n[snapshot]\n").expect("parse");
         assert!(section.snapshot.config_hash_allowlist.is_empty());
         assert!(Config::default().snapshot.config_hash_allowlist.is_empty());
+    }
+
+    #[test]
+    fn omitted_sensitive_path_allowlist_is_empty_and_parses() {
+        let bare = Config::parse_toml("schema_version = 1\n").expect("parse");
+        assert!(bare.security.sensitive_path_allowlist.is_empty());
+        let section =
+            Config::parse_toml("schema_version = 1\n\n[security]\ncheck_firewall = true\n")
+                .expect("parse");
+        assert!(section.security.sensitive_path_allowlist.is_empty());
+        assert!(Config::default()
+            .security
+            .sensitive_path_allowlist
+            .is_empty());
+        let listed = Config::parse_toml(
+            "schema_version = 1\n\n[security]\nsensitive_path_allowlist = [\"/tmp/example\"]\n",
+        )
+        .expect("parse");
+        assert_eq!(
+            listed.security.sensitive_path_allowlist,
+            vec!["/tmp/example".to_string()]
+        );
+    }
+
+    #[test]
+    fn init_writes_an_empty_sensitive_path_allowlist() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        Config::init_file(&path, false).unwrap();
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("sensitive_path_allowlist"));
+        let loaded = Config::load(&path).unwrap();
+        assert!(loaded.security.sensitive_path_allowlist.is_empty());
     }
 }

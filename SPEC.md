@@ -206,6 +206,7 @@ Read-only checks, each with source/coverage/confidence:
 - Firewall status (`ufw`/nftables detection), SSH exposure/configuration where readable.
 - OS security update status using Ubuntu-supported interfaces; never silently install updates.
 - File permission checks for selected sensitive user-owned paths; no recursive global scan by default.
+- `security paths` reads mode bits for each path in `security.sensitive_path_allowlist`, and owner and group names when the local account database provides them without sudo. It does not recurse, follow symlinks, use sudo, or read file contents. A missing or unreadable path is `unavailable`, and the result is not clean. An empty allowlist means no paths were configured, and that result is not a clean scan of the disk.
 - Developer dependency audit integration (opt-in; respect tool availability and potential network egress).
 
 Severity categories: `info`, `warning`, `critical`, `unknown`; every rule is documented, configurable and unit-tested. An unfamiliar process is *not* malware proof.
@@ -263,6 +264,7 @@ warn_gpu_temp_c = 85
 check_ssh_logs = true
 check_firewall = true
 check_listening_ports = true
+sensitive_path_allowlist = []
 
 [backup]
 engine = "restic"                # or rustic, selected at initialization

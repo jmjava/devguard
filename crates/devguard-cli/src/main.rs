@@ -25,6 +25,7 @@ use devguard_core::health_scan::{format_health_scan_human, scan_health};
 use devguard_core::json::JsonEnvelope;
 use devguard_core::os_identity::{format_os_human, scan_os};
 use devguard_core::packages::{format_packages_human, scan_packages};
+use devguard_core::path_perms::{format_path_perms_human, scan_path_permissions};
 use devguard_core::ports::{format_ports_human, scan_ports};
 use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
@@ -75,6 +76,11 @@ enum Commands {
     Health {
         #[command(subcommand)]
         action: HealthCommands,
+    },
+    /// Read-only security checks. Does not use sudo or read file contents.
+    Security {
+        #[command(subcommand)]
+        action: SecurityCommands,
     },
     /// One-shot NVIDIA GPU reading. Does not use sudo or load kernel modules.
     Gpu {
@@ -189,6 +195,18 @@ enum HealthCommands {
         #[arg(long, value_name = "DURATION")]
         interval: String,
     },
+}
+
+#[derive(Debug, Subcommand)]
+enum SecurityCommands {
+    /// Mode bits for allowlisted sensitive paths.
+    ///
+    /// The allowlist is `security.sensitive_path_allowlist`. Owner and group
+    /// names are included when the local account database provides them.
+    /// A missing or unreadable path is unavailable, and the result is not
+    /// clean. An empty allowlist means no paths were configured. This command
+    /// does not recurse, use sudo, or read or print file contents.
+    Paths,
 }
 
 #[derive(Debug, Subcommand)]
@@ -338,6 +356,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             Ok(report.exit_code())
         }
         Commands::Health { action } => run_health(cli.json, paths, action),
+        Commands::Security { action } => run_security(cli.json, paths, action),
         Commands::Remote { action } => run_remote(cli.json, paths, action),
         Commands::Slm { action } => match action {
             SlmCommands::Energy(action) => cmd_slm_energy::run(cli.json, action),
@@ -690,6 +709,43 @@ fn run_remote(
             }
             Ok(ExitCode::Success)
         }
+    }
+}
+
+fn run_security(
+    json: bool,
+    paths: &DevGuardPaths,
+    action: SecurityCommands,
+) -> Result<ExitCode, devguard_core::DevGuardError> {
+    match action {
+        SecurityCommands::Paths => {
+            let allowlist = sensitive_path_allowlist(paths)?;
+            let report = scan_path_permissions(&allowlist);
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("security paths", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("security paths", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_path_perms_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+    }
+}
+
+fn sensitive_path_allowlist(
+    paths: &DevGuardPaths,
+) -> Result<Vec<String>, devguard_core::DevGuardError> {
+    if paths.config_file.is_file() {
+        Ok(Config::load(&paths.config_file)?
+            .security
+            .sensitive_path_allowlist)
+    } else {
+        Ok(Config::default().security.sensitive_path_allowlist)
     }
 }
 

@@ -29,6 +29,8 @@ warn_mem_percent = 90
 check_ssh_logs = true
 check_firewall = true
 check_listening_ports = true
+# Allowlisted paths only. An empty list checks nothing; it is not a disk scan.
+sensitive_path_allowlist = []
 
 [backup]
 engine = "restic"
