@@ -20,6 +20,7 @@ use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
 };
 use devguard_core::runaway::{format_runaway_human, scan_runaways, RunawayThresholds};
+use devguard_core::sensors::{format_sensors_human, scan_sensors};
 use devguard_core::watch::parse_watch_interval;
 use devguard_core::DevGuardPaths;
 use tracing_subscriber::EnvFilter;
@@ -100,6 +101,12 @@ enum HealthCommands {
     /// Does not use sudo, write a fan curve, load a kernel module, or change BIOS.
     /// Missing `sensors` or `nvidia-smi` is unavailable, never a clean result.
     Fan,
+    /// Package, CPU, and board temperatures plus fan RPM from hwmon files.
+    ///
+    /// Does not install packages, use sudo, load a kernel module, or change a fan curve.
+    /// If `sensors` is missing and no hwmon file is readable, the reading is
+    /// unavailable and not clean.
+    Sensors,
     /// Find a process at 6+ cores for 10 minutes, or holding 12+ GiB RSS.
     ///
     /// Samples CPU for one second. Prints a stop hint and does not send a signal.
@@ -363,6 +370,21 @@ fn run_health(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_fan_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        HealthCommands::Sensors => {
+            let report = scan_sensors();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("health sensors", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("health sensors", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_sensors_human(&report));
             }
             Ok(report.exit_code())
         }

@@ -15,6 +15,7 @@ Working today:
 - `devguard config init` / `devguard config validate`
 - `devguard status` — placeholder until collectors persist scans
 - `devguard health fan` — read-only observations and hypotheses. Process names only. Missing `sensors` or `nvidia-smi` is `unavailable`, never a clean result. Does not use sudo or change fan curves.
+- `devguard health sensors` — package, CPU, and board temperatures plus fan RPM from hwmon files. If `sensors` is missing and no hwmon file is readable, the reading is `unavailable` and not clean. Does not install packages, use sudo, load modules, or change a fan curve.
 - `devguard health watch --interval 5s` — ratatui view of that same fan diagnostic. Refreshes on a bounded interval and exits on Ctrl+C. Does not start a background service or signal processes. Missing `sensors` or `nvidia-smi` stays `unavailable`.
 - `devguard gpu scan` — one-shot NVIDIA reading (human and `--json`). A hash of the GPU UUID, never the raw UUID. Missing `nvidia-smi` or a missing field is `unavailable`, never a clean result. Does not use sudo or load modules.
 - `devguard remote status` — host and tunnel reachability. Off until local config names an SSH host and user. Does not print that target.
