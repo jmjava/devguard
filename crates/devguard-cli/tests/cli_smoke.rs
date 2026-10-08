@@ -28,6 +28,7 @@ fn help_lists_core_commands() {
         .stdout(predicate::str::contains("dev"))
         .stdout(predicate::str::contains("security"))
         .stdout(predicate::str::contains("snapshot"))
+        .stdout(predicate::str::contains("schedule"))
         .stdout(predicate::str::contains("backup"));
 }
 
@@ -3478,6 +3479,241 @@ fn security_scan_missing_ufw_is_unknown() {
         .iter()
         .any(|item| item.as_str().unwrap_or("").contains("firewall unavailable")));
 }
+
+const DAILY_UNIT: &str = "\
+# devguard-scan.service
+# Dry-run only. This text is not written and the timer is not enabled.
+[Unit]
+Description=DevGuard scheduled scan
+
+[Service]
+Type=oneshot
+ExecStart=devguard health scan
+
+# devguard-scan.timer
+# Dry-run only. This text is not written and the timer is not enabled.
+[Unit]
+Description=DevGuard scheduled scan timer
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+Unit=devguard-scan.service
+
+[Install]
+WantedBy=timers.target
+";
+
+fn write_marker_script(path: &std::path::Path, marker: &std::path::Path) {
+    let script = format!("#!/bin/sh\nprintf ran >> '{}'\n", marker.display());
+    std::fs::write(path, script).unwrap();
+    let mut perms = std::fs::metadata(path).unwrap().permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(path, perms).unwrap();
+}
+
+fn assert_no_unit_files(home: &std::path::Path, xdg_config: &std::path::Path) {
+    for root in [home.join(".config"), xdg_config.to_path_buf()] {
+        assert!(
+            !root.join("systemd/user/devguard-scan.service").exists(),
+            "service unit was written under {}",
+            root.display()
+        );
+        assert!(
+            !root.join("systemd/user/devguard-scan.timer").exists(),
+            "timer unit was written under {}",
+            root.display()
+        );
+    }
+}
+
+#[test]
+fn schedule_dry_run_help_documents_the_opt_in_limit() {
+    devguard()
+        .args(["schedule", "dry-run", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("not requested"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("systemctl"))
+        .stdout(predicate::str::contains("enable"));
+}
+
+#[test]
+fn schedule_dry_run_without_opt_in_is_not_clean_and_writes_nothing() {
+    let dir = tempdir().expect("tempdir");
+    let home = dir.path().join("home");
+    let xdg = home.join(".config");
+    let bin = dir.path().join("bin");
+    std::fs::create_dir_all(&xdg).unwrap();
+    std::fs::create_dir_all(&bin).unwrap();
+    let systemctl_marker = dir.path().join("systemctl-ran");
+    let sudo_marker = dir.path().join("sudo-ran");
+    write_marker_script(&bin.join("systemctl"), &systemctl_marker);
+    write_marker_script(&bin.join("sudo"), &sudo_marker);
+    let config = dir.path().join("config.toml");
+    std::fs::write(&config, "schema_version = 1\n").unwrap();
+
+    let output = devguard()
+        .env("HOME", &home)
+        .env("XDG_CONFIG_HOME", &xdg)
+        .env("XDG_STATE_HOME", dir.path().join("state"))
+        .env("PATH", &bin)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "schedule",
+            "dry-run",
+        ])
+        .output()
+        .expect("schedule dry-run");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "schedule dry-run");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["timer"], "not_requested");
+    assert_eq!(value["data"]["status"], "unavailable");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["writes_unit_files"], false);
+    assert_eq!(value["data"]["runs_systemctl"], false);
+    assert_eq!(value["data"]["enables_timer"], false);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert!(value["data"]["unit_text"].is_null());
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap_or("").contains("not requested")));
+    assert!(!stdout.contains("ExecStart"));
+    assert_no_unit_files(&home, &xdg);
+    assert!(!systemctl_marker.exists());
+    assert!(!sudo_marker.exists());
+}
+
+#[test]
+fn schedule_dry_run_prints_the_unit_and_writes_nothing() {
+    let dir = tempdir().expect("tempdir");
+    let home = dir.path().join("home");
+    let xdg = home.join(".config");
+    let bin = dir.path().join("bin");
+    std::fs::create_dir_all(&xdg).unwrap();
+    std::fs::create_dir_all(&bin).unwrap();
+    let systemctl_marker = dir.path().join("systemctl-ran");
+    let sudo_marker = dir.path().join("sudo-ran");
+    write_marker_script(&bin.join("systemctl"), &systemctl_marker);
+    write_marker_script(&bin.join("sudo"), &sudo_marker);
+    let config = dir.path().join("config.toml");
+    std::fs::write(
+        &config,
+        "\
+schema_version = 1
+
+[schedule]
+enabled = true
+on_calendar = \"daily\"
+
+[slm]
+workspace_label = \"ghp_SCHEDULEFIXTURETOKEN password=hunter2\"
+",
+    )
+    .unwrap();
+
+    let output = devguard()
+        .env("HOME", &home)
+        .env("XDG_CONFIG_HOME", &xdg)
+        .env("XDG_STATE_HOME", dir.path().join("state"))
+        .env("PATH", &bin)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "schedule",
+            "dry-run",
+        ])
+        .output()
+        .expect("schedule dry-run");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "schedule dry-run");
+    assert_eq!(value["data"]["timer"], "opted_in");
+    assert_eq!(value["data"]["status"], "available");
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["writes_unit_files"], false);
+    assert_eq!(value["data"]["runs_systemctl"], false);
+    assert_eq!(value["data"]["enables_timer"], false);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["unit_text"], DAILY_UNIT);
+    let combined = format!("{stdout}{stderr}");
+    assert!(!combined.contains("ghp_SCHEDULEFIXTURETOKEN"));
+    assert!(!combined.contains("hunter2"));
+    assert_no_unit_files(&home, &xdg);
+    assert!(!systemctl_marker.exists());
+    assert!(!sudo_marker.exists());
+    assert!(!xdg.join("systemd").exists());
+}
+
+#[test]
+fn schedule_dry_run_human_prints_the_unit_text() {
+    let dir = tempdir().expect("tempdir");
+    let config = dir.path().join("config.toml");
+    std::fs::write(
+        &config,
+        "schema_version = 1\n\n[schedule]\nenabled = true\non_calendar = \"weekly\"\n",
+    )
+    .unwrap();
+    let output = devguard()
+        .env("HOME", dir.path().join("home"))
+        .env("XDG_CONFIG_HOME", dir.path().join("xdg"))
+        .args(["--config", config.to_str().unwrap(), "schedule", "dry-run"])
+        .output()
+        .expect("schedule dry-run");
+    assert_eq!(output.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard schedule dry-run"));
+    assert!(stdout.contains("writes unit files: no"));
+    assert!(stdout.contains("runs systemctl: no"));
+    assert!(stdout.contains("enables timer: no"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("timer: opted in"));
+    assert!(stdout.contains("status: available"));
+    assert!(stdout.contains("clean: yes"));
+    assert!(stdout.contains("OnCalendar=weekly"));
+    assert!(stdout.contains("ExecStart=devguard health scan"));
+    assert!(!dir.path().join("xdg/systemd").exists());
+    assert!(!dir.path().join("home/.config/systemd").exists());
+}
+
+#[test]
+fn schedule_dry_run_rejects_a_secret_calendar_without_printing_it() {
+    let dir = tempdir().expect("tempdir");
+    let config = dir.path().join("config.toml");
+    std::fs::write(
+        &config,
+        "schema_version = 1\n\n[schedule]\nenabled = true\non_calendar = \"daily ghp_SCHEDULEFIXTURETOKEN\"\n",
+    )
+    .unwrap();
+    let output = devguard()
+        .args(["--config", config.to_str().unwrap(), "schedule", "dry-run"])
+        .output()
+        .expect("schedule dry-run");
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let combined = format!("{stdout}{stderr}");
+    assert!(!combined.contains("ghp_SCHEDULEFIXTURETOKEN"));
+    assert!(stderr.contains("schedule.on_calendar"));
+}
+
 #[test]
 fn security_help_keeps_existing_commands_and_adds_diff() {
     devguard()

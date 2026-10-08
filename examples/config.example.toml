@@ -51,6 +51,12 @@ verify_mode = "sample"
 repo_roots = ["~/Projects"]
 allow_network_audits = false
 
+# Opt-in systemd --user timer for a later scan.
+# `devguard schedule dry-run` prints the unit text and does not install it.
+[schedule]
+enabled = false
+on_calendar = "daily"
+
 # SLM / local inference metrics — inventory and resource capture only.
 # See docs/slm-research-metrics.md for paper-oriented fields (TTFT/TPOT/J/token).
 [slm]

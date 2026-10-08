@@ -91,6 +91,7 @@ devguard backup restore --snapshot ID --target PATH --dry-run
 devguard dev env [--json]
 devguard dev repos scan [PATH...] [--json]
 devguard dev deps audit [--online] [--json]  # network audit only with --online
+devguard schedule dry-run [--json]       # print an opt-in systemd --user timer; does not install it
 ```
 
 CLI conventions:
@@ -350,6 +351,8 @@ Deliver: Git workspace hygiene, environment inventory, opt-in dependency adapter
 Deliver: systemd user timers for **opt-in** scheduled scans/backups, alert output (local notification or report file), rotation/retention controls, package/release instructions, benchmark of idle overhead.
 
 **Acceptance:** Scheduling can be disabled completely; no hidden privileged service; safe restarts; documented maintenance and recovery.
+
+`devguard schedule dry-run` is the first slice of that timer. It prints the user service and timer text for a later `devguard health scan`. It does not write `~/.config/systemd`, run `systemctl`, enable the timer, or use sudo. The timer stays off until `schedule.enabled` is true. Until then the result says the timer is not requested and is not clean. Alerts, retention, packaging, and multi-node stay later.
 
 ### M7 — Multi-node (explicitly deferred)
 

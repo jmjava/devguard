@@ -1,5 +1,13 @@
 # Decision log
 
+## 2026-10-07 — Scheduled scans start as a printed systemd user timer
+
+- `devguard schedule dry-run` prints a user service and timer for a later `devguard health scan`.
+- The command does not write under `~/.config/systemd`, run `systemctl`, enable the timer, or use sudo.
+- `schedule.enabled` defaults to false. Until the operator opts in, the timer is not requested, the result is not clean, and the exit code is 3.
+- `schedule.on_calendar` is `daily`, `hourly`, or `weekly`. Any other value is rejected and is not printed.
+- The unit text is a fixed template. It does not copy config values that could hold a secret, a token, or a password.
+
 ## 2026-10-07 — M1 persistence is a local SQLite file
 
 - The store is crate `devguard-store`, using `rusqlite` 0.32.1 with bundled SQLite so the toolchain stays on rustc 1.85 and does not need a system `libsqlite3`.

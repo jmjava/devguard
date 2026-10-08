@@ -90,6 +90,9 @@ pub struct Config {
     /// Named downstairs WSL helper. Off until host and user are both set.
     #[serde(default)]
     pub remote: RemoteConfig,
+    /// Opt-in systemd user timer. Off until `enabled` is true.
+    #[serde(default)]
+    pub schedule: ScheduleConfig,
 }
 
 impl Default for Config {
@@ -105,6 +108,7 @@ impl Default for Config {
             dev: DevConfig::default(),
             slm: SlmConfig::default(),
             remote: RemoteConfig::default(),
+            schedule: ScheduleConfig::default(),
         }
     }
 }
@@ -311,6 +315,28 @@ pub struct RemoteConfig {
     pub remote_port: u16,
 }
 
+/// Opt-in systemd `--user` timer for a later scan.
+///
+/// `enabled` stays false until the operator opts in. `on_calendar` is only
+/// `daily`, `hourly`, or `weekly`. Other values are rejected and are not
+/// printed. `devguard schedule dry-run` does not write this timer.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ScheduleConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_on_calendar")]
+    pub on_calendar: String,
+}
+
+impl Default for ScheduleConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            on_calendar: default_on_calendar(),
+        }
+    }
+}
+
 impl Default for RemoteConfig {
     fn default() -> Self {
         Self {
@@ -382,6 +408,9 @@ fn default_ssh_port() -> u16 {
 }
 fn default_ollama_port() -> u16 {
     11434
+}
+fn default_on_calendar() -> String {
+    "daily".into()
 }
 
 impl Config {
@@ -500,6 +529,11 @@ impl Config {
                 "backup.engine must be \"restic\" or \"rustic\", got \"{}\"",
                 self.backup.engine
             )));
+        }
+        if crate::schedule::ScanCalendar::parse(&self.schedule.on_calendar).is_none() {
+            return Err(ConfigError::Validation(
+                "schedule.on_calendar must be daily, hourly, or weekly".into(),
+            ));
         }
         if !matches!(
             self.backup.verify_mode.as_str(),
@@ -675,6 +709,12 @@ verify_mode = "sample"
 [dev]
 repo_roots = []
 allow_network_audits = false
+
+# Opt-in systemd --user timer for a later scan.
+# `devguard schedule dry-run` prints the unit text and does not install it.
+[schedule]
+enabled = false
+on_calendar = "daily"
 
 # SLM / local model metrics (inventory + resource capture; no model loading)
 # Academic metric mapping: docs/slm-research-metrics.md
@@ -874,5 +914,35 @@ mod tests {
         assert!(text.contains("sensitive_path_allowlist"));
         let loaded = Config::load(&path).unwrap();
         assert!(loaded.security.sensitive_path_allowlist.is_empty());
+    }
+
+    #[test]
+    fn omitted_schedule_is_off() {
+        let bare = Config::parse_toml("schema_version = 1\n").expect("parse");
+        assert!(!bare.schedule.enabled);
+        assert_eq!(bare.schedule.on_calendar, "daily");
+        bare.validate().expect("default calendar");
+    }
+
+    #[test]
+    fn init_writes_a_disabled_schedule() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("config.toml");
+        Config::init_file(&path, false).unwrap();
+        let loaded = Config::load(&path).unwrap();
+        assert!(!loaded.schedule.enabled);
+        assert_eq!(loaded.schedule.on_calendar, "daily");
+    }
+
+    #[test]
+    fn schedule_calendar_rejects_a_secret_without_echoing_it() {
+        let mut cfg = Config::default();
+        cfg.schedule.on_calendar = "daily ghp_FIXTURETOKEN1234567890 password=hunter2".into();
+        let err = cfg.validate().unwrap_err();
+        let text = err.to_string();
+        assert!(text.contains("schedule.on_calendar"));
+        assert!(!text.contains("ghp_"));
+        assert!(!text.contains("hunter2"));
+        assert!(!text.to_ascii_lowercase().contains("password"));
     }
 }
