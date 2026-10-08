@@ -70,6 +70,7 @@ devguard health sensors [--json]        # package, CPU, and board temperatures p
 devguard health os [--json]            # kernel release, boot id, and uptime; hostname is only a hash
 devguard health units [--json]          # systemd unit name, enabled, active, and failed; read-only
 devguard health watch --interval 5s     # TUI, exits cleanly on Ctrl+C
+devguard health gpu-id [--json]         # NVIDIA driver, GPU name, and PCI bus id; a missing tool or field is unavailable
 devguard gpu scan [--json]              # one-shot nvidia-smi reading; a missing tool or field is unavailable
 
 devguard security scan [--json]
@@ -188,6 +189,7 @@ Collect:
 - `health scan` is single-shot. `health watch` refreshes the fan diagnostic in a ratatui terminal on a bounded interval (1s through 300s), exits on Ctrl+C, and does not start a background service or signal processes. Missing `sensors` or `nvidia-smi` stays unavailable.
 - `health fan` prints observations and hypotheses for fan noise. It reads process names only, never command arguments. Missing `sensors` or `nvidia-smi`, and a missing chassis tachometer, are `unavailable` and the result is not clean. The command does not use sudo, load modules, write BIOS, or change fan curves.
 - `health os` reports kernel release, boot id, and uptime from `/proc`. The hostname is stored only as a privacy-preserving hash. A missing `/proc` source is `unavailable` and the result is not clean. The command does not use sudo, open a port, or collect package lists.
+- `health gpu-id` records the NVIDIA driver version, GPU name, and PCI bus id for upgrade diffs. It reads one `nvidia-smi` query. A missing `nvidia-smi` or a missing field is `unavailable`, and the result is not clean. Rows are ordered by PCI bus id. It does not use sudo or load a kernel module.
 - `gpu scan` reads `nvidia-smi` once. It prints a hash of each GPU UUID and does not print the raw UUID. Missing `nvidia-smi` or a missing field is `unavailable`, and the result is not clean. Multiple GPUs stay in nvidia-smi index order. The call times out and keeps a bounded capture. It does not use sudo or load kernel modules. It does not collect process arguments.
 - `health ports` reads local `ss -lntup` once and reports protocol, address, port, and process name. A missing `ss` is `unavailable`, and the result is not clean. A listening row with no process name is attribution missing, which is distinct from a closed port. The command does not open a port, scan a remote host, or collect command arguments.
 - `health units` reports unit name, enabled state, active state, and whether the unit is failed. It reads one `systemctl show` listing. If `systemctl` is missing or the listing is unreadable, the result is `unavailable` and not clean. It does not start, stop, enable, or disable units, and it does not use sudo.

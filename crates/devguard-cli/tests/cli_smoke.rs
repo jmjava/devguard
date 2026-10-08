@@ -900,6 +900,112 @@ fn health_fan_help_remains() {
 }
 
 #[test]
+fn health_gpu_id_help_documents_identity_and_limits() {
+    devguard()
+        .args(["health", "gpu-id", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("driver"))
+        .stdout(predicate::str::contains("PCI"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("kernel module"));
+}
+
+#[test]
+fn health_gpu_id_json_parses_a_fixture_query() {
+    let dir = tempdir().unwrap();
+    let program = dir.path().join("query");
+    std::fs::write(
+        &program,
+        "#!/bin/sh\ncat <<'EOF'\nNVIDIA Example GPU B, 550.90.07, 00000000:02:00.0\nNVIDIA Example, Laptop GPU, 550.54.14, 00000000:01:00.0\nEOF\n",
+    )
+    .unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    let mut perms = std::fs::metadata(&program).unwrap().permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(&program, perms).unwrap();
+
+    let output = devguard()
+        .env("DEVGUARD_NVIDIA_SMI_BIN", &program)
+        .args(["--json", "health", "gpu-id"])
+        .output()
+        .expect("health gpu-id");
+    assert_eq!(output.status.code(), Some(0), "{:?}", output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("GPU-"), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "health gpu-id");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["loads_modules"], false);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["nvidia_smi"]["status"], "available");
+    let gpus = value["data"]["gpus"].as_array().expect("gpus");
+    assert_eq!(gpus.len(), 2);
+    assert_eq!(gpus[0]["name"]["value"], "NVIDIA Example, Laptop GPU");
+    assert_eq!(gpus[0]["driver_version"]["value"], "550.54.14");
+    assert_eq!(gpus[0]["pci_bus_id"]["value"], "00000000:01:00.0");
+    assert_eq!(gpus[1]["pci_bus_id"]["value"], "00000000:02:00.0");
+    assert!(gpus[0].get("uuid").is_none());
+    assert!(gpus[0].get("cmdline").is_none());
+}
+
+#[test]
+fn health_gpu_id_missing_field_is_not_clean() {
+    let dir = tempdir().unwrap();
+    let program = dir.path().join("query");
+    std::fs::write(
+        &program,
+        "#!/bin/sh\nprintf '%s\n' 'NVIDIA Example GPU A, [N/A], 00000000:01:00.0'\n",
+    )
+    .unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    let mut perms = std::fs::metadata(&program).unwrap().permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(&program, perms).unwrap();
+
+    let output = devguard()
+        .env("DEVGUARD_NVIDIA_SMI_BIN", &program)
+        .args(["--json", "health", "gpu-id"])
+        .output()
+        .expect("health gpu-id");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "health gpu-id");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(
+        value["data"]["gpus"][0]["driver_version"]["status"],
+        "unavailable"
+    );
+    assert!(value["data"]["gpus"][0]["driver_version"]
+        .get("value")
+        .is_none());
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["loads_modules"], false);
+}
+
+#[test]
+fn health_gpu_id_missing_tool_is_unavailable_not_clean() {
+    let output = devguard()
+        .env("DEVGUARD_NVIDIA_SMI_BIN", "/no/such/devguard-nvidia-smi")
+        .args(["--json", "health", "gpu-id"])
+        .output()
+        .expect("health gpu-id");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "health gpu-id");
+    assert_eq!(value["data"]["nvidia_smi"]["status"], "unavailable");
+    assert_eq!(value["data"]["clean"], false);
+    assert!(value["data"]["gpus"].as_array().unwrap().is_empty());
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["loads_modules"], false);
+}
+
+#[test]
 fn health_ports_help_documents_attribution_and_limits() {
     devguard()
         .args(["health", "ports", "--help"])
