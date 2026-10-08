@@ -1,5 +1,6 @@
 //! DevGuard core library: configuration, errors, JSON envelopes, and collector contracts.
 
+pub mod backup_plan;
 pub mod collector;
 pub mod config;
 pub mod dev_deps;
@@ -39,6 +40,10 @@ pub mod thresholds;
 pub mod units;
 pub mod watch;
 
+pub use backup_plan::{
+    format_backup_plan_human, plan_backup, BackupPlanReport, PlanCoverage, PlannedInclude,
+    UnreadablePath,
+};
 pub use collector::{Collection, CollectionStatus, Collector};
 pub use config::{Config, ConfigError, ConfigPaths};
 pub use dev_deps::{

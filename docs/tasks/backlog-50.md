@@ -73,7 +73,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 ## F. Backup Guardian (M4) — 6
 
 - [ ] #devguard #m4 Choose first engine (restic **or** rustic); pin versions; document password-file/FD/keyring
-- [ ] #devguard #m4 `backup plan` dry-run: includes/excludes, unreadable paths, huge-model warnings
+- [x] #devguard #m4 `backup plan` dry-run: includes/excludes, unreadable paths, huge-model warnings
 - [ ] #devguard #m4 `backup run` / `list` against configured repo only; never log/argv/config passwords
 - [ ] #devguard #m4 `backup verify [--sample]` — metadata vs sampled content; record snapshot identity
 - [ ] #devguard #m4 Safe restore (`--dry-run` → `--apply` + confirm) + integration hash-match test

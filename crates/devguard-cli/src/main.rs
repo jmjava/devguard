@@ -14,7 +14,8 @@ use std::path::PathBuf;
 use std::process::ExitCode as StdExitCode;
 
 use clap::{Parser, Subcommand};
-use devguard_core::config::{Config, ConfigPaths};
+use devguard_core::backup_plan::{format_backup_plan_human, plan_backup};
+use devguard_core::config::{BackupConfig, Config, ConfigPaths};
 use devguard_core::dev_deps::{format_deps_audit_human, scan_deps_audit};
 use devguard_core::dev_env::{format_dev_env_human, scan_dev_env};
 use devguard_core::dev_repos::{format_dev_repos_human, scan_dev_repos};
@@ -125,6 +126,11 @@ enum Commands {
     Dev {
         #[command(subcommand)]
         action: DevCommands,
+    },
+    /// Dry-run backup plan. Does not run a backup engine or create a repository.
+    Backup {
+        #[command(subcommand)]
+        action: BackupCommands,
     },
     /// Store and diff a workstation snapshot.
     ///
@@ -360,6 +366,22 @@ enum ReposCommands {
 }
 
 #[derive(Debug, Subcommand)]
+enum BackupCommands {
+    /// Dry-run plan of includes, excludes, unreadable paths, and huge-model warnings.
+    ///
+    /// Lists the configured include paths and exclude patterns. A missing or
+    /// unreadable include is unavailable. Huge-model names (`*.gguf`, `*.bin`,
+    /// and `models` directories) produce warnings. An empty include list is not
+    /// a plan of the whole disk. If the backup engine or repository is not
+    /// configured, the result is unavailable and not clean.
+    ///
+    /// This command does not choose restic or rustic, does not run either binary,
+    /// does not create a repository, and does not write a snapshot. It does not
+    /// call restic, rustic, systemctl, or sudo, and it does not log a password.
+    Plan,
+}
+
+#[derive(Debug, Subcommand)]
 enum ConfigCommands {
     /// Create a local config file (no backup until repository is configured)
     Init {
@@ -489,6 +511,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             SlmCommands::Checklist(action) => cmd_slm_checklist::run(cli.json, paths, action),
         },
         Commands::Dev { action } => run_dev(cli.json, paths, action),
+        Commands::Backup { action } => run_backup(cli.json, paths, action),
         Commands::Snapshot { action } => cmd_snapshot::run(
             cli.json,
             &config_hash_allowlist(paths)?,
@@ -869,6 +892,38 @@ fn run_remote(
             }
             Ok(ExitCode::Success)
         }
+    }
+}
+
+fn run_backup(
+    json: bool,
+    paths: &DevGuardPaths,
+    action: BackupCommands,
+) -> Result<ExitCode, devguard_core::DevGuardError> {
+    match action {
+        BackupCommands::Plan => {
+            let report = plan_backup(&backup_settings(paths)?);
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("backup plan", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("backup plan", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_backup_plan_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+    }
+}
+
+fn backup_settings(paths: &DevGuardPaths) -> Result<BackupConfig, devguard_core::DevGuardError> {
+    if paths.config_file.is_file() {
+        Ok(Config::load(&paths.config_file)?.backup)
+    } else {
+        Ok(Config::default().backup)
     }
 }
 
