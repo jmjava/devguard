@@ -36,6 +36,7 @@ use devguard_core::remote::{
 use devguard_core::runaway::{format_runaway_human, scan_runaways, RunawayThresholds};
 use devguard_core::security_updates::{format_security_updates_human, scan_security_updates};
 use devguard_core::sensors::{format_sensors_human, scan_sensors};
+use devguard_core::ssh_auth::{format_ssh_auth_human, scan_ssh_auth};
 use devguard_core::units::{format_units_human, scan_units};
 use devguard_core::watch::parse_watch_interval;
 use devguard_core::DevGuardPaths;
@@ -53,14 +54,18 @@ use crate::watch::run_watch;
 monitoring, and capturing developer/SLM workstation metrics.\n\n\
 Privileges: ordinary user execution. Mutating commands (backup run/restore) require \
 explicit configuration and confirmation.\n\n\
-Dependencies (feature-detected): nvidia-smi, sensors, git, ss, systemctl, ufw, nft, restic/rustic. \
+Dependencies (feature-detected): nvidia-smi, sensors, git, ss, systemctl, ufw, nft, last, \
+journalctl, restic/rustic. \
 `dev env` reports version lines for rustc, cargo, python3, node, git, and gcc. \
 `dev repos scan` reads dirty, untracked, branch, upstream, and unpublished commits \
 for git work trees under an explicit path or dev.repo_roots. It does not fetch, \
 pull, push, or walk the home directory. \
 `dev deps audit` checks local cargo-audit, Python, npm, and Maven or Gradle \
 adapters. It does not contact the network or transmit a manifest unless `--online` \
-is set. A missing local tool is unavailable, and that result is not clean."
+is set. A missing local tool is unavailable, and that result is not clean. \
+`security ssh-auth` reports SSH login counts, timestamps, and source addresses \
+from `last`, the journal, and the auth log when those sources are readable. \
+It does not copy credentials or full journal payloads, use sudo, or change sshd."
 )]
 struct Cli {
     /// Path to config.toml (default: ~/.config/devguard/config.toml)
@@ -86,7 +91,7 @@ enum Commands {
         #[command(subcommand)]
         action: HealthCommands,
     },
-    /// Read-only security checks. Does not install updates, use sudo, or read file contents.
+    /// Read-only security checks. Does not install updates, use sudo, read file contents, or change host configuration.
     Security {
         #[command(subcommand)]
         action: SecurityCommands,
@@ -244,6 +249,14 @@ enum SecurityCommands {
     /// installed-package inventory. If the security-update source is missing
     /// or unreadable, the result is unavailable and not clean.
     Updates,
+    /// SSH login history and failed auth attempts where the source is readable.
+    ///
+    /// Reports counts, timestamps, and source addresses only. Does not copy
+    /// credentials, passwords, private keys, or full journal payloads. A missing
+    /// journal, missing `last`, or unreadable auth log is unavailable, and that
+    /// result is not clean. Does not use sudo, start or stop sshd, or change
+    /// sshd config.
+    SshAuth,
 }
 
 #[derive(Debug, Subcommand)]
@@ -867,6 +880,21 @@ fn run_security(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_security_updates_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        SecurityCommands::SshAuth => {
+            let report = scan_ssh_auth();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("security ssh-auth", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("security ssh-auth", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_ssh_auth_human(&report));
             }
             Ok(report.exit_code())
         }

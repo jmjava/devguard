@@ -2314,6 +2314,123 @@ fn health_packages_missing_lists_are_not_clean() {
 }
 
 #[test]
+fn security_ssh_auth_help_documents_unavailable_sources() {
+    devguard()
+        .args(["security", "ssh-auth", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("sshd"))
+        .stdout(predicate::str::contains("credentials"))
+        .stdout(predicate::str::contains("journal"));
+}
+
+#[test]
+fn security_ssh_auth_json_parses_fixtures_without_the_host_journal() {
+    let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../devguard-core/fixtures");
+    let output = devguard()
+        .env("DEVGUARD_LAST_FILE", fixtures.join("last.txt"))
+        .env("DEVGUARD_JOURNAL_FILE", fixtures.join("journal-ssh.txt"))
+        .env("DEVGUARD_AUTH_LOG", fixtures.join("auth-ssh.log"))
+        .env_remove("DEVGUARD_LAST_BIN")
+        .env_remove("DEVGUARD_JOURNALCTL_BIN")
+        .args(["--json", "security", "ssh-auth"])
+        .output()
+        .expect("security ssh-auth");
+    assert_eq!(output.status.code(), Some(0), "{:?}", output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lower = stdout.to_ascii_lowercase();
+    for needle in [
+        "alice",
+        "hunter2",
+        "sudo-secret",
+        "begin openssh",
+        "private key",
+        "sha256:",
+        "password",
+    ] {
+        assert!(!lower.contains(needle), "{needle} leaked in {stdout}");
+    }
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "security ssh-auth");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["starts_sshd"], false);
+    assert_eq!(value["data"]["stops_sshd"], false);
+    assert_eq!(value["data"]["changes_sshd_config"], false);
+    assert_eq!(value["data"]["copies_credentials"], false);
+    assert_eq!(value["data"]["copies_journal"], false);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["last"]["status"], "available");
+    assert_eq!(value["data"]["journal"]["status"], "available");
+    assert_eq!(value["data"]["auth_log"]["status"], "available");
+    assert_eq!(value["data"]["login_count"], 5);
+    assert_eq!(value["data"]["failure_count"], 5);
+    assert_eq!(value["data"]["logins"][0]["source_address"], "203.0.113.10");
+    assert_eq!(value["data"]["logins"][4]["source_address"], "2001:db8::10");
+    assert!(value["data"]["logins"][2]["source_address"].is_null());
+    assert!(value["warnings"].is_null() || value["warnings"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn security_ssh_auth_missing_sources_are_partial() {
+    let output = devguard()
+        .env("DEVGUARD_LAST_BIN", "/no/such/devguard-last")
+        .env("DEVGUARD_JOURNAL_FILE", "/no/such/devguard-journal")
+        .env("DEVGUARD_AUTH_LOG", "/no/such/devguard-auth.log")
+        .env_remove("DEVGUARD_LAST_FILE")
+        .env_remove("DEVGUARD_JOURNALCTL_BIN")
+        .args(["--json", "security", "ssh-auth"])
+        .output()
+        .expect("security ssh-auth");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "security ssh-auth");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["last"]["status"], "unavailable");
+    assert_eq!(value["data"]["journal"]["status"], "unavailable");
+    assert_eq!(value["data"]["auth_log"]["status"], "unavailable");
+    assert_eq!(value["data"]["login_count"], 0);
+    assert_eq!(value["data"]["failure_count"], 0);
+    assert!(value["data"]["logins"].as_array().unwrap().is_empty());
+    assert!(value["data"]["failures"].as_array().unwrap().is_empty());
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["starts_sshd"], false);
+    assert_eq!(value["data"]["stops_sshd"], false);
+}
+
+#[test]
+fn security_ssh_auth_human_states_the_safety_limits() {
+    let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../devguard-core/fixtures");
+    let output = devguard()
+        .env("DEVGUARD_LAST_FILE", fixtures.join("last.txt"))
+        .env("DEVGUARD_JOURNAL_FILE", fixtures.join("journal-ssh.txt"))
+        .env("DEVGUARD_AUTH_LOG", fixtures.join("auth-ssh.log"))
+        .env_remove("DEVGUARD_LAST_BIN")
+        .env_remove("DEVGUARD_JOURNALCTL_BIN")
+        .args(["security", "ssh-auth"])
+        .output()
+        .expect("security ssh-auth");
+    assert_eq!(output.status.code(), Some(0), "{:?}", output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard security ssh-auth"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("starts sshd: no"));
+    assert!(stdout.contains("stops sshd: no"));
+    assert!(stdout.contains("changes sshd config: no"));
+    assert!(stdout.contains("copies credentials: no"));
+    assert!(stdout.contains("copies journal payloads: no"));
+    assert!(stdout.contains("clean: yes"));
+    assert!(stdout.contains("203.0.113.10"));
+    assert!(!stdout.to_ascii_lowercase().contains("hunter2"));
+    assert!(!stdout.to_ascii_lowercase().contains("password"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
 fn health_packages_human_states_the_safety_limits() {
     let dir = tempdir().expect("tempdir");
     let status = dir.path().join("status");

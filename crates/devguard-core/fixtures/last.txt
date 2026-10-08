@@ -1,0 +1,9 @@
+alice pts/0 203.0.113.10 Wed Oct 7 21:01:02 2026 - Wed Oct 7 21:15:00 2026 (00:13)
+bob pts/1 198.51.100.4 Tue Oct 6 09:00:01 2026 - Tue Oct 6 09:05:00 2026 (00:04)
+carol tty1 Mon Oct 5 08:00:00 2026 still logged in
+reboot system boot 7.0.0-38-generic Sun Oct 4 07:00:00 2026 still running
+dave pts/2 Sun Oct 4 12:30:00 2026 - down (00:10)
+password=hunter2 pts/3 203.0.113.50 Wed Oct 7 22:00:00 2026 - Wed Oct 7 22:01:00 2026 (00:01)
+eve pts/4 2001:db8::10 Wed Oct 7 23:11:12 2026 - Wed Oct 7 23:12:00 2026 (00:00)
+
+wtmp begins Sun Oct 4 07:00:00 2026
