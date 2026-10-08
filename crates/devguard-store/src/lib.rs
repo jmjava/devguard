@@ -349,6 +349,32 @@ impl Store {
             })),
         }
     }
+
+    /// List snapshots in stable order: `created_at` ascending, then `id`.
+    ///
+    /// The order does not depend on insertion sequence when timestamps tie.
+    pub fn list_snapshots(&self) -> Result<Vec<Snapshot>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, created_at, label, run_id, payload FROM snapshots
+             ORDER BY created_at ASC, id ASC",
+        )?;
+        let rows = stmt.query_map([], snapshot_from_row)?;
+        let mut snapshots = Vec::new();
+        for row in rows {
+            snapshots.push(row?);
+        }
+        Ok(snapshots)
+    }
+}
+
+fn snapshot_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Snapshot> {
+    Ok(Snapshot {
+        id: row.get(0)?,
+        created_at: row.get(1)?,
+        label: row.get(2)?,
+        run_id: row.get(3)?,
+        payload: row.get(4)?,
+    })
 }
 
 /// `state_dir/devguard.db`.
@@ -516,6 +542,35 @@ mod tests {
         assert_eq!(snapshot.label.as_deref(), Some("pre-upgrade"));
         assert_eq!(snapshot.payload, "{}");
         assert!(store.get_run("missing").expect("missing").is_none());
+    }
+
+    #[test]
+    fn list_snapshots_is_ordered_by_created_at_then_id() {
+        let file = tempfile::NamedTempFile::new().expect("temp file");
+        let store = Store::open(file.path()).expect("open");
+        assert!(store.list_snapshots().expect("empty").is_empty());
+        for (id, created_at) in [
+            ("snap-b", "2026-10-08T00:00:02Z"),
+            ("snap-z", "2026-10-08T00:00:01Z"),
+            ("snap-a", "2026-10-08T00:00:01Z"),
+        ] {
+            store
+                .insert_snapshot(&Snapshot {
+                    id: id.into(),
+                    created_at: created_at.into(),
+                    label: Some("pre-upgrade".into()),
+                    run_id: None,
+                    payload: "{}".into(),
+                })
+                .expect("insert");
+        }
+        let ids: Vec<_> = store
+            .list_snapshots()
+            .expect("list")
+            .into_iter()
+            .map(|row| row.id)
+            .collect();
+        assert_eq!(ids, vec!["snap-a", "snap-z", "snap-b"]);
     }
 
     #[test]

@@ -29,6 +29,7 @@ pub mod slm;
 pub mod slm_checklist;
 pub mod slm_export;
 pub mod slm_run;
+pub mod snapshot;
 pub mod thresholds;
 pub mod units;
 pub mod watch;
@@ -72,6 +73,12 @@ pub use slm::{
 };
 pub use slm_checklist::{format_paper_checklist, paper_checklist, PaperChecklist};
 pub use slm_export::{export_paper_table, paper_row, PaperRow, WrittenExport, PAPER_COLUMNS};
+pub use snapshot::{
+    collect_snapshot, collector_statuses, diff_payloads, format_create_human, format_diff_human,
+    format_list_human, parse_payload, snapshot_warnings, summary_from_stored,
+    CollectorAvailability, CollectorStatus, DiffEntry, SeverityHint, SnapshotDiff, SnapshotPayload,
+    SnapshotSummary,
+};
 pub use thresholds::{evaluate_thresholds, ThresholdSample, ThresholdWarning, RULES_OF_THUMB};
 pub use units::{format_units_human, parse_systemctl_listing, scan_units, UnitRecord, UnitsReport};
 pub use watch::{

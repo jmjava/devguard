@@ -26,7 +26,8 @@ fn help_lists_core_commands() {
         .stdout(predicate::str::contains("remote"))
         .stdout(predicate::str::contains("slm"))
         .stdout(predicate::str::contains("dev"))
-        .stdout(predicate::str::contains("security"));
+        .stdout(predicate::str::contains("security"))
+        .stdout(predicate::str::contains("snapshot"));
 }
 
 #[test]
@@ -2384,4 +2385,209 @@ fn security_firewall_unreadable_sshd_is_not_clean() {
     assert!(stdout.contains("clean: no"));
     assert!(stdout.contains("unreadable"));
     assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+fn home_devguard_db() -> PathBuf {
+    PathBuf::from(std::env::var("HOME").unwrap_or_default())
+        .join(".local/state/devguard/devguard.db")
+}
+
+fn db_stamp(path: &std::path::Path) -> Option<(u64, std::time::SystemTime)> {
+    let meta = std::fs::metadata(path).ok()?;
+    Some((meta.len(), meta.modified().unwrap_or(std::time::UNIX_EPOCH)))
+}
+
+#[test]
+fn snapshot_help_documents_unavailable_collectors_and_ordinary_labels() {
+    devguard()
+        .args(["snapshot", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("create"))
+        .stdout(predicate::str::contains("list"))
+        .stdout(predicate::str::contains("diff"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("label"));
+    devguard()
+        .args(["snapshot", "diff", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Severity"))
+        .stdout(predicate::str::contains("fact"));
+}
+
+#[test]
+fn snapshot_create_list_diff_uses_a_temp_database() {
+    let dir = tempdir().expect("tempdir");
+    let config = dir.path().join("missing-config.toml");
+    let home_db = home_devguard_db();
+    let before = db_stamp(&home_db);
+
+    let created = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "snapshot",
+            "create",
+            "--label",
+            "pre-upgrade",
+        ])
+        .output()
+        .expect("snapshot create");
+    let stdout = String::from_utf8_lossy(&created.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("create json");
+    assert_eq!(value["command"], "snapshot create");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["label"], "pre-upgrade");
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["installs_packages"], false);
+    assert_eq!(value["data"]["opens_network"], false);
+    let collectors = value["data"]["collectors"].as_array().expect("collectors");
+    let names: Vec<_> = collectors
+        .iter()
+        .map(|row| row["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        names,
+        vec!["os", "packages", "units", "ports", "gpu_id", "dev_env", "files", "health"]
+    );
+    let any_unavailable = collectors.iter().any(|row| row["status"] == "unavailable");
+    let clean = value["data"]["clean"].as_bool().expect("clean");
+    if any_unavailable {
+        assert!(!clean);
+    }
+    assert_eq!(
+        created.status.code(),
+        Some(if clean { 0 } else { 3 }),
+        "{stdout}"
+    );
+    let files = collectors
+        .iter()
+        .find(|row| row["name"] == "files")
+        .expect("files");
+    assert_eq!(files["status"], "unavailable");
+    assert!(!clean);
+
+    let db_path = dir.path().join("devguard.db");
+    assert!(db_path.is_file(), "temp database was not created");
+    assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
+
+    let store = devguard_store::Store::open(&db_path).expect("open temp db");
+    let id = value["data"]["id"].as_str().expect("id").to_string();
+    let row = store.get_snapshot(&id).expect("get").expect("row");
+    assert_eq!(row.label.as_deref(), Some("pre-upgrade"));
+    let payload: serde_json::Value = serde_json::from_str(&row.payload).expect("payload");
+    assert_eq!(payload["label"], "pre-upgrade");
+    assert_eq!(payload["uses_sudo"], false);
+    assert_eq!(payload["installs_packages"], false);
+    assert_eq!(payload["opens_network"], false);
+    assert_eq!(payload["collectors"]["files"]["status"], "unavailable");
+    assert!(payload["collectors"]["files"]["report"].is_object());
+    assert!(payload["collectors"]["os"]["report"].is_object());
+    assert!(payload["collectors"]["packages"]["report"].is_object());
+    assert!(payload["collectors"]["units"]["report"].is_object());
+    assert!(payload["collectors"]["ports"]["report"].is_object());
+    assert!(payload["collectors"]["gpu_id"]["report"].is_object());
+    assert!(payload["collectors"]["dev_env"]["report"].is_object());
+    assert!(payload["collectors"]["health"]["report"].is_object());
+    drop(store);
+
+    let listed = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "snapshot",
+            "list",
+        ])
+        .output()
+        .expect("snapshot list");
+    assert!(listed.status.success());
+    let list: serde_json::Value = serde_json::from_slice(&listed.stdout).expect("list json");
+    assert_eq!(list["command"], "snapshot list");
+    assert_eq!(list["data"]["snapshots"][0]["id"], id);
+    assert_eq!(list["data"]["snapshots"][0]["label"], "pre-upgrade");
+
+    let second = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "snapshot",
+            "create",
+            "--label",
+            "post-upgrade",
+        ])
+        .output()
+        .expect("second create");
+    let second_json: serde_json::Value =
+        serde_json::from_slice(&second.stdout).expect("second json");
+    let second_id = second_json["data"]["id"].as_str().expect("id");
+    assert_eq!(second_json["data"]["label"], "post-upgrade");
+
+    let diff = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "snapshot",
+            "diff",
+            &id,
+            second_id,
+        ])
+        .output()
+        .expect("diff");
+    let diff_stdout = String::from_utf8_lossy(&diff.stdout);
+    let diff_json: serde_json::Value = serde_json::from_str(&diff_stdout).expect("diff json");
+    assert_eq!(diff_json["command"], "snapshot diff");
+    assert_eq!(diff_json["data"]["baseline_label"], "pre-upgrade");
+    assert_eq!(diff_json["data"]["current_label"], "post-upgrade");
+    for bucket in ["added", "removed", "changed"] {
+        let entries = diff_json["data"][bucket].as_array().expect(bucket);
+        let keys: Vec<_> = entries
+            .iter()
+            .map(|entry| entry["key"].as_str().unwrap().to_string())
+            .collect();
+        let mut sorted = keys.clone();
+        sorted.sort();
+        assert_eq!(keys, sorted);
+        for entry in entries {
+            let fact = entry["fact"].as_str().expect("fact");
+            let severity = entry["severity"].as_str().expect("severity");
+            assert!(matches!(
+                severity,
+                "info" | "warning" | "critical" | "unknown"
+            ));
+            assert_ne!(fact, severity);
+            assert!(!matches!(fact, "info" | "warning" | "critical" | "unknown"));
+        }
+    }
+    let baseline_clean = value["data"]["clean"].as_bool().unwrap();
+    let current_clean = second_json["data"]["clean"].as_bool().unwrap();
+    let expect = if baseline_clean && current_clean {
+        0
+    } else {
+        3
+    };
+    assert_eq!(diff.status.code(), Some(expect), "{diff_stdout}");
+    assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
+
+    let missing = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "snapshot",
+            "diff",
+            "missing-baseline",
+            "missing-current",
+        ])
+        .output()
+        .expect("missing");
+    assert_eq!(missing.status.code(), Some(1));
+    assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
 }
