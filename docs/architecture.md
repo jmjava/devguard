@@ -8,13 +8,14 @@ DevGuard is a Cargo workspace with a single CLI binary and shared library crates
 |---|---|
 | `devguard-cli` | `clap` commands, human/JSON output |
 | `devguard-core` | config, errors, exit codes, JSON envelope, redaction, doctor, collector contract |
+| `devguard-store` | SQLite file `devguard.db` in the state directory; migrations for `runs`, `observations`, and `snapshots` |
 
-Later milestones add `devguard-store`, `devguard-host`, `devguard-health`, `devguard-security`, `devguard-backup`, and `devguard-dev` without changing the JSON envelope versioning rules.
+Later milestones add `devguard-host`, `devguard-health`, `devguard-security`, `devguard-backup`, and `devguard-dev` without changing the JSON envelope versioning rules.
 
 ## Data locations
 
 - Config: `~/.config/devguard/config.toml` (mode `0600` on init)
-- State: `~/.local/state/devguard/` (SQLite in M1+)
+- State: `~/.local/state/devguard/devguard.db` (SQLite tables `runs`, `observations`, `snapshots`)
 
 ## SLM metrics direction
 
