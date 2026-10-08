@@ -352,3 +352,75 @@ fn remote_status_reports_host_down_without_secrets() {
     assert_eq!(value["data"]["gpu"]["state"], "unavailable");
     assert_eq!(value["data"]["fan"]["state"], "unavailable");
 }
+
+#[test]
+fn slm_energy_help_does_not_call_nvidia_smi() {
+    devguard()
+        .args(["slm", "energy", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("nvidia-smi"))
+        .stdout(predicate::str::contains("--sample"))
+        .stdout(predicate::str::contains("--tokens"));
+}
+
+#[test]
+fn slm_energy_json_derives_fixture_joules() {
+    let output = devguard()
+        .args([
+            "--json",
+            "slm",
+            "energy",
+            "--sample",
+            "60@2026-10-07T20:00:00Z",
+            "--sample",
+            "100@2026-10-07T20:00:10Z",
+            "--tokens",
+            "100",
+        ])
+        .output()
+        .expect("slm energy");
+    assert!(output.status.success(), "{:?}", output);
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["command"], "slm energy");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["status"], "available");
+    assert_eq!(value["data"]["measurement_plane"], "gpu_rail");
+    assert_eq!(value["data"]["calls_nvidia_smi"], false);
+    assert_eq!(value["data"]["energy_j"], 800.0);
+    assert_eq!(value["data"]["joules_per_token"], 8.0);
+    assert_eq!(value["data"]["tokens_per_joule"], 0.125);
+}
+
+#[test]
+fn slm_energy_single_sample_is_unavailable() {
+    let output = devguard()
+        .args([
+            "--json",
+            "slm",
+            "energy",
+            "--sample",
+            "80@2026-10-07T20:00:00Z",
+            "--tokens",
+            "50",
+        ])
+        .output()
+        .expect("slm energy");
+    assert_eq!(output.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["data"]["status"], "unavailable");
+    assert_eq!(value["data"]["measurement_plane"], "gpu_rail");
+    assert!(value["data"].get("energy_j").is_none());
+    assert!(value["data"].get("joules_per_token").is_none());
+    assert_eq!(value["warnings"][0], "no interval");
+}
+
+#[test]
+fn slm_energy_rejects_a_malformed_sample() {
+    devguard()
+        .args(["slm", "energy", "--sample", "80"])
+        .assert()
+        .code(64)
+        .stderr(predicate::str::contains("<watts>@<rfc3339>"));
+}

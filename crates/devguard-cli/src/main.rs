@@ -1,5 +1,6 @@
 //! DevGuard CLI entrypoint.
 
+mod cmd_slm_energy;
 mod output;
 mod watch;
 
@@ -67,6 +68,11 @@ enum Commands {
     Remote {
         #[command(subcommand)]
         action: RemoteCommands,
+    },
+    /// SLM metrics from supplied samples. Energy does not call nvidia-smi.
+    Slm {
+        #[command(subcommand)]
+        action: cmd_slm_energy::SlmCommands,
     },
     /// Configuration management
     Config {
@@ -221,6 +227,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
         }
         Commands::Health { action } => run_health(cli.json, action),
         Commands::Remote { action } => run_remote(cli.json, paths, action),
+        Commands::Slm { action } => cmd_slm_energy::run(cli.json, action),
         Commands::Config {
             action: ConfigCommands::Init { force },
         } => {
