@@ -1,6 +1,6 @@
 # DevGuard
 
-Rust CLI toolkit for workstation **backup**, **audit**, **health**, and **SLM (small language model) metrics** on Ubuntu/Linux.
+Read-only Ubuntu Linux diagnostics for a developer workstation: health, snapshots, security checks, and local SLM metrics. Collectors read `/proc`, systemd, and APT. Windows and macOS are not supported.
 
 Read-only by default. Mutating actions (backup/restore) require explicit configuration and confirmation.
 

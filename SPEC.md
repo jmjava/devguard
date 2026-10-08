@@ -1,8 +1,8 @@
 # DevGuard — Rust Workstation Security, Backup & Developer Operations Toolkit
 
 **Status:** Draft implementation specification v0.1  
-**Primary platform:** Ubuntu 26.04 Linux (x86_64)  
-**Secondary platform:** Other modern Linux distributions; later Windows agent support  
+**Platform:** Ubuntu Linux (x86_64), developed on Ubuntu 26.04.  
+**Other systems:** Windows and macOS are not supported. Another Linux distribution can answer a command only when that host has the same source (`/proc`, systemd, APT, or the named tool). A missing source stays unavailable.  
 **Working style:** Cursor-driven, test-first, incremental implementation  
 **License recommendation:** Apache-2.0 or MIT (decision pending)
 
@@ -38,7 +38,7 @@ DevGuard is **not** an antivirus product, a replacement for `sudo`, or a homemad
 - **No arbitrary remote execution:** Agent networking remains off by default; later implementations require mutually authenticated encryption and narrowly scoped APIs.
 - **Failures must be visible:** Unavailable sensors, permission denials, uninstalled providers, and partial scans must be marked `unknown` or `unavailable`, never as clean.
 - **Evidence over heuristics:** Security findings record observation, confidence, source, timestamp, and remediation suggestion; do not automatically label an unfamiliar service malicious.
-- **Portability:** Adapter interfaces for OS-dependent sources and tools; Ubuntu-specific logic is isolated.
+- **Platform:** Collectors read Ubuntu Linux sources. There is no Windows or macOS adapter. A missing tool or file is unavailable.
 - **Resource aware:** Bounded memory use, process timeouts, asynchronous tasks only where valuable, and limited polling overhead.
 - **Versioned output:** JSON schemas contain `schema_version` and are tested for backward-compatible evolution.
 - **Respect ownership:** Back up only configured, readable user directories; do not harvest credentials or private data by default.
