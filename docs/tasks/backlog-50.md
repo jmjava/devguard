@@ -68,7 +68,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 - [x] #devguard #m3 SSH login / failed-auth adapter (no credentials or full journal dumps)
 - [x] #devguard #m3 OS security-update status via Ubuntu interfaces (never auto-install)
 - [x] #devguard #m3 Allowlisted sensitive path permission checks (no global recursive scan)
-- [ ] #devguard #m3 `security scan` / `diff` / `findings [--severity]`; missing perms ≠ clean in fixtures
+- [x] #devguard #m3 `security scan` / `diff` / `findings [--severity]`; missing perms ≠ clean in fixtures
 
 ## F. Backup Guardian (M4) — 6
 
