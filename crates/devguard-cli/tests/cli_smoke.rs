@@ -2593,3 +2593,139 @@ fn snapshot_create_list_diff_uses_a_temp_database() {
     assert_eq!(missing.status.code(), Some(1));
     assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
 }
+
+#[test]
+fn security_updates_help_documents_read_only_sources() {
+    devguard()
+        .args(["security", "updates", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("apt install"))
+        .stdout(predicate::str::contains("apt update"))
+        .stdout(predicate::str::contains("full-upgrade"));
+}
+
+#[test]
+fn security_updates_json_uses_notifier_or_security_lists() {
+    let dir = tempdir().expect("tempdir");
+    let notifier = dir.path().join("updates-available");
+    let status = dir.path().join("status");
+    let lists = dir.path().join("lists");
+    std::fs::write(
+        &notifier,
+        "2 updates can be applied immediately.\n1 of these updates is a standard security update.\n",
+    )
+    .unwrap();
+    std::fs::write(
+        &status,
+        "Package: bash\nStatus: install ok installed\nArchitecture: amd64\nVersion: 5.2.21-2ubuntu4\n\nPackage: libc6\nStatus: install ok installed\nArchitecture: amd64\nVersion: 2.39-0ubuntu8\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(&lists).unwrap();
+    std::fs::write(
+        lists.join("archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"),
+        "Package: libc6\nArchitecture: amd64\nVersion: 2.39-0ubuntu9\n",
+    )
+    .unwrap();
+    std::fs::write(
+        lists.join("security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"),
+        "Package: bash\nArchitecture: amd64\nVersion: 5.2.21-2ubuntu5\n",
+    )
+    .unwrap();
+
+    let output = devguard()
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args(["--json", "security", "updates"])
+        .output()
+        .expect("security updates");
+    assert_eq!(output.status.code(), Some(0));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "security updates");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["status"], "available");
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["runs_apt"], false);
+    assert_eq!(value["data"]["changes_packages"], false);
+    assert_eq!(value["data"]["notifier"]["standard_security_updates"], 1);
+    assert_eq!(value["data"]["pending"].as_array().unwrap().len(), 1);
+    assert_eq!(value["data"]["pending"][0]["name"], "bash");
+    assert_eq!(value["data"]["pending"][0]["installed"], "5.2.21-2ubuntu4");
+    assert_eq!(value["data"]["pending"][0]["available"], "5.2.21-2ubuntu5");
+    assert_eq!(value["data"]["pending"][0]["pocket"], "standard");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("libc6"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn security_updates_missing_source_is_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    let output = devguard()
+        .env(
+            "DEVGUARD_UPDATE_NOTIFIER",
+            dir.path().join("missing-notifier"),
+        )
+        .env("DEVGUARD_DPKG_STATUS", dir.path().join("missing-status"))
+        .env("DEVGUARD_APT_LISTS", dir.path().join("missing-lists"))
+        .args(["--json", "security", "updates"])
+        .output()
+        .expect("security updates");
+    assert_eq!(output.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["command"], "security updates");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["status"], "unavailable");
+    assert_eq!(value["data"]["update_notifier"]["status"], "unavailable");
+    assert_eq!(value["data"]["security_lists"]["status"], "unavailable");
+    assert!(value["data"]["pending"].as_array().unwrap().is_empty());
+    assert!(value["data"]["notifier"].is_null());
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap_or("").contains("security updates")));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn security_updates_human_states_the_safety_limits() {
+    let dir = tempdir().expect("tempdir");
+    let notifier = dir.path().join("updates-available");
+    let status = dir.path().join("status");
+    let lists = dir.path().join("lists");
+    std::fs::write(&notifier, "0 updates can be applied immediately.\n").unwrap();
+    std::fs::write(
+        &status,
+        "Package: bash\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1.0\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(&lists).unwrap();
+    std::fs::write(
+        lists.join("security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"),
+        "Package: bash\nArchitecture: amd64\nVersion: 1.0\n",
+    )
+    .unwrap();
+    let output = devguard()
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args(["security", "updates"])
+        .output()
+        .expect("security updates");
+    assert_eq!(output.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard security updates"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("runs apt: no"));
+    assert!(stdout.contains("changes packages: no"));
+    assert!(stdout.contains("clean: yes"));
+    assert!(stdout.contains("Security package updates\n  none\n"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}

@@ -416,7 +416,7 @@ fn is_installed_status(status: &str) -> bool {
     matches!(want, Some("install" | "hold")) && state == Some("installed")
 }
 
-fn debian_version_cmp(left: &str, right: &str) -> Ordering {
+pub(crate) fn debian_version_cmp(left: &str, right: &str) -> Ordering {
     let (epoch_left, rest_left) = split_epoch(left);
     let (epoch_right, rest_right) = split_epoch(right);
     match epoch_left.cmp(&epoch_right) {

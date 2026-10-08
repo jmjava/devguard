@@ -33,6 +33,7 @@ use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
 };
 use devguard_core::runaway::{format_runaway_human, scan_runaways, RunawayThresholds};
+use devguard_core::security_updates::{format_security_updates_human, scan_security_updates};
 use devguard_core::sensors::{format_sensors_human, scan_sensors};
 use devguard_core::units::{format_units_human, scan_units};
 use devguard_core::watch::parse_watch_interval;
@@ -81,7 +82,7 @@ enum Commands {
         #[command(subcommand)]
         action: HealthCommands,
     },
-    /// Read-only security checks. Does not use sudo.
+    /// Read-only security checks. Does not install updates, use sudo, or read file contents.
     Security {
         #[command(subcommand)]
         action: SecurityCommands,
@@ -230,6 +231,13 @@ enum SecurityCommands {
     /// change nftables rules, and does not use sudo. nftables output is detection,
     /// not a full audit.
     Firewall,
+    /// OS security-update status from update-notifier or security-pocket APT lists.
+    ///
+    /// Reads files already on disk. Does not run apt install, apt upgrade,
+    /// apt full-upgrade, or apt update, and does not use sudo. This is not an
+    /// installed-package inventory. If the security-update source is missing
+    /// or unreadable, the result is unavailable and not clean.
+    Updates,
 }
 
 #[derive(Debug, Subcommand)]
@@ -797,6 +805,21 @@ fn run_security(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_firewall_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        SecurityCommands::Updates => {
+            let report = scan_security_updates();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("security updates", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("security updates", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_security_updates_human(&report));
             }
             Ok(report.exit_code())
         }
