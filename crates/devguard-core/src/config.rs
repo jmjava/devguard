@@ -155,6 +155,9 @@ impl Default for SnapshotConfig {
 }
 
 /// Health and GPU threshold hints (rules of thumb, not hardware guarantees).
+///
+/// The `warn_cpu_load`, `warn_temp_c`, `warn_disk_free_bytes`, and
+/// `warn_mem_used_fraction` keys are optional. A missing key emits no warning.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct HealthConfig {
     #[serde(default = "default_warn_cpu_temp")]
@@ -167,6 +170,18 @@ pub struct HealthConfig {
     /// Warn when system memory utilization exceeds this percentage.
     #[serde(default = "default_warn_mem_pct")]
     pub warn_mem_percent: f64,
+    /// Optional 1-minute CPU load. Missing means no load warning.
+    #[serde(default)]
+    pub warn_cpu_load: Option<f64>,
+    /// Optional temperature in Celsius. Missing means no temperature warning.
+    #[serde(default)]
+    pub warn_temp_c: Option<f64>,
+    /// Optional free-byte floor. Missing means no disk warning.
+    #[serde(default)]
+    pub warn_disk_free_bytes: Option<f64>,
+    /// Optional used-memory fraction in `0.0..=1.0`. Missing means no fraction warning.
+    #[serde(default)]
+    pub warn_mem_used_fraction: Option<f64>,
 }
 
 impl Default for HealthConfig {
@@ -176,6 +191,10 @@ impl Default for HealthConfig {
             warn_gpu_temp_c: default_warn_gpu_temp(),
             warn_gpu_mem_percent: default_warn_gpu_mem_pct(),
             warn_mem_percent: default_warn_mem_pct(),
+            warn_cpu_load: None,
+            warn_temp_c: None,
+            warn_disk_free_bytes: None,
+            warn_mem_used_fraction: None,
         }
     }
 }
@@ -459,6 +478,26 @@ impl Config {
                 "memory warning percentages must be <= 100".into(),
             ));
         }
+        for (name, value) in [
+            ("health.warn_cpu_load", self.health.warn_cpu_load),
+            ("health.warn_temp_c", self.health.warn_temp_c),
+            (
+                "health.warn_disk_free_bytes",
+                self.health.warn_disk_free_bytes,
+            ),
+            (
+                "health.warn_mem_used_fraction",
+                self.health.warn_mem_used_fraction,
+            ),
+        ] {
+            if let Some(value) = value {
+                if !value.is_finite() || value < 0.0 {
+                    return Err(ConfigError::Validation(format!(
+                        "{name} must be a non-negative finite number"
+                    )));
+                }
+            }
+        }
         if !matches!(self.backup.engine.as_str(), "restic" | "rustic") {
             return Err(ConfigError::Validation(format!(
                 "backup.engine must be \"restic\" or \"rustic\", got \"{}\"",
@@ -603,10 +642,15 @@ config_hash_allowlist = {allowlist}
 
 [health]
 # Thresholds are rules of thumb for your workstation; adjust for your hardware.
+# They are not hardware guarantees. Omit an optional key to emit no warning.
 warn_cpu_temp_c = {cpu_temp}
 warn_gpu_temp_c = {gpu_temp}
 warn_gpu_mem_percent = {gpu_mem}
 warn_mem_percent = {mem}
+# warn_cpu_load = 8.0
+# warn_temp_c = 85
+# warn_disk_free_bytes = 10000000000
+# warn_mem_used_fraction = 0.9
 
 [security]
 check_ssh_logs = true
@@ -731,6 +775,48 @@ mod tests {
         let path = Config::expand_user_path("~/Projects").unwrap();
         assert!(path.is_absolute());
         assert!(path.ends_with("Projects"));
+    }
+
+    #[test]
+    fn negative_optional_threshold_is_rejected() {
+        let cases = [
+            (
+                "warn_cpu_load",
+                HealthConfig {
+                    warn_cpu_load: Some(-1.0),
+                    ..HealthConfig::default()
+                },
+            ),
+            (
+                "warn_temp_c",
+                HealthConfig {
+                    warn_temp_c: Some(-0.1),
+                    ..HealthConfig::default()
+                },
+            ),
+            (
+                "warn_disk_free_bytes",
+                HealthConfig {
+                    warn_disk_free_bytes: Some(-1.0),
+                    ..HealthConfig::default()
+                },
+            ),
+            (
+                "warn_mem_used_fraction",
+                HealthConfig {
+                    warn_mem_used_fraction: Some(-0.01),
+                    ..HealthConfig::default()
+                },
+            ),
+        ];
+        for (label, health) in cases {
+            let cfg = Config {
+                health,
+                ..Config::default()
+            };
+            let err = cfg.validate().unwrap_err();
+            assert!(err.to_string().contains(label), "{err}");
+        }
     }
 
     #[test]

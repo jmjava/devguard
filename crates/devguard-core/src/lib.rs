@@ -16,6 +16,7 @@ pub mod remote;
 pub mod runaway;
 pub mod slm;
 pub mod slm_run;
+pub mod thresholds;
 pub mod watch;
 
 pub use collector::{Collection, CollectionStatus, Collector};
@@ -40,6 +41,7 @@ pub use slm::{
     LatencyMetrics, MeasurementPlane, QualityMetrics, SlmRunRecord, SystemObservation,
     SLM_RUN_SCHEMA_VERSION,
 };
+pub use thresholds::{evaluate_thresholds, ThresholdSample, ThresholdWarning, RULES_OF_THUMB};
 pub use watch::{
     format_interval, parse_watch_interval, refresh, render_watch, WatchSample, MAX_WATCH_INTERVAL,
     MIN_WATCH_INTERVAL,
