@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/devguard-core",
     "crates/devguard-cli",
+    "crates/devguard-dashboard",
 ]
 
 [workspace.package]

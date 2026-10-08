@@ -1,0 +1,30 @@
+[package]
+name = "devguard-dashboard"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Read-only local window for DevGuard doctor and status"
+repository.workspace = true
+
+[lib]
+name = "devguard_dashboard"
+path = "src/lib.rs"
+
+[[bin]]
+name = "devguard-dashboard"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+devguard-core.workspace = true
+# 0.33 requires rustc 1.88. This repo stays on 1.85.
+# accesskit pulls zbus releases that need rustc 1.87, so the window
+# stays on glow without a screen-reader backend.
+eframe = { version = "=0.32.3", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
+tempfile = "3.14"

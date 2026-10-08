@@ -19,6 +19,7 @@ Working today:
 - `devguard gpu scan` — one-shot NVIDIA reading (human and `--json`). A hash of the GPU UUID, never the raw UUID. Missing `nvidia-smi` or a missing field is `unavailable`, never a clean result. Does not use sudo or load modules.
 - `devguard remote status` — host and tunnel reachability. Off until local config names an SSH host and user. Does not print that target.
 - `devguard remote tunnel up` / `down` — SSH local-forward to Ollama on `127.0.0.1` inside WSL. No bind on all interfaces, no public tunnel, no arbitrary command, no file upload, no firewall change, and no resident daemon.
+- `devguard-dashboard` — read-only window over the doctor report and status already returned by the library. `devguard-dashboard --smoke` prints that snapshot and exits without opening a display. It does not start a daemon.
 - Versioned `--json` envelopes, redacted logging helpers, unit + CLI smoke tests
 
 **Next priority (given SLM / academic workloads):** health + GPU collectors and run bracketing for paper-ready efficiency tables (TTFT/TPOT annotations + VRAM/power/temp). See [`docs/slm-research-metrics.md`](docs/slm-research-metrics.md).
@@ -31,6 +32,7 @@ cargo run -p devguard-cli -- config init
 cargo run -p devguard-cli -- doctor
 cargo run -p devguard-cli -- --json doctor
 cargo run -p devguard-cli -- config validate
+cargo run -p devguard-dashboard -- --smoke
 ```
 
 Optional config for local models (`~/.config/devguard/config.toml`):
