@@ -3,6 +3,7 @@
 use assert_cmd::assert::OutputAssertExt;
 use assert_cmd::cargo::CommandCargoExt;
 use predicates::prelude::*;
+use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
 use tempfile::tempdir;
 
@@ -21,7 +22,9 @@ fn help_lists_core_commands() {
         .stdout(predicate::str::contains("status"))
         .stdout(predicate::str::contains("health"))
         .stdout(predicate::str::contains("gpu"))
-        .stdout(predicate::str::contains("remote"));
+        .stdout(predicate::str::contains("remote"))
+        .stdout(predicate::str::contains("slm"))
+        .stdout(predicate::str::contains("dev"));
 }
 
 #[test]
@@ -555,15 +558,15 @@ fn remote_status_reports_host_down_without_secrets() {
         "stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
-    let rendered = format!(
-        "{}{}",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
-    assert!(!rendered.contains("secret-downstairs"));
-    assert!(!rendered.contains("labuser"));
-    assert!(!rendered.contains("2222"));
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    let mut body = value.clone();
+    if let Some(obj) = body.as_object_mut() {
+        obj.remove("observed_at");
+    }
+    let rendered = format!("{}{}", body, String::from_utf8_lossy(&output.stderr));
+    assert!(!rendered.contains("secret-downstairs"), "{rendered}");
+    assert!(!rendered.contains("labuser"), "{rendered}");
+    assert!(!rendered.contains("2222"), "{rendered}");
     assert_eq!(value["data"]["host"], "down");
     assert_eq!(value["data"]["tags"]["state"], "unavailable");
     assert_eq!(value["data"]["gpu"]["state"], "unavailable");
@@ -858,6 +861,103 @@ fn health_ports_missing_ss_is_unavailable_not_clean() {
     assert!(value["data"]["sockets"].as_array().unwrap().is_empty());
     assert_eq!(value["data"]["opens_port"], false);
     assert_eq!(value["data"]["scans_remote"], false);
+}
+
+#[test]
+fn dev_env_help_documents_a_missing_tool_as_unavailable() {
+    devguard()
+        .args(["dev", "env", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("PATH"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("network"))
+        .stdout(predicate::str::contains("package audit"))
+        .stdout(predicate::str::contains("install"));
+}
+
+fn write_version_tool(dir: &std::path::Path, name: &str, line: &str) {
+    let path = dir.join(name);
+    std::fs::write(&path, format!("#!/bin/sh\nprintf '%s\\n' '{line}'\n")).expect("fixture");
+    let mut perms = std::fs::metadata(&path).expect("meta").permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(&path, perms).expect("chmod");
+}
+
+#[test]
+fn dev_env_json_reads_fixture_versions_from_path() {
+    let dir = tempdir().expect("tempdir");
+    let lines = [
+        ("rustc", "rustc 1.85.0 (fixture)"),
+        ("cargo", "cargo 1.85.0 (fixture)"),
+        ("python3", "Python 3.12.3"),
+        ("node", "v20.18.0"),
+        ("git", "git version 2.43.0"),
+        ("gcc", "gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0"),
+    ];
+    for (name, line) in lines {
+        write_version_tool(dir.path(), name, line);
+    }
+    let output = devguard()
+        .env("PATH", dir.path())
+        .args(["--json", "dev", "env"])
+        .output()
+        .expect("dev env");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(output.status.code(), Some(0), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "dev env");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["installs_tools"], false);
+    assert_eq!(value["data"]["uses_network"], false);
+    assert_eq!(value["data"]["runs_package_audit"], false);
+    let tools = value["data"]["tools"].as_array().expect("tools");
+    assert_eq!(tools.len(), lines.len());
+    for (tool, (name, line)) in tools.iter().zip(lines) {
+        assert_eq!(tool["name"], name);
+        assert_eq!(tool["status"], "available");
+        assert_eq!(tool["version_line"], line);
+    }
+}
+
+#[test]
+fn dev_env_missing_tool_on_fixture_path_is_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    write_version_tool(dir.path(), "git", "git version 2.43.0");
+    let output = devguard()
+        .env("PATH", dir.path())
+        .args(["--json", "dev", "env"])
+        .output()
+        .expect("dev env");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(output.status.code(), Some(3), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "dev env");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["installs_tools"], false);
+    assert_eq!(value["data"]["uses_network"], false);
+    assert_eq!(value["data"]["runs_package_audit"], false);
+    let gcc = value["data"]["tools"]
+        .as_array()
+        .expect("tools")
+        .iter()
+        .find(|tool| tool["name"] == "gcc")
+        .expect("gcc");
+    assert_eq!(gcc["status"], "unavailable");
+    assert!(gcc.get("version_line").is_none());
+    assert!(gcc["detail"].as_str().unwrap_or("").contains("not on PATH"));
+    let human = devguard()
+        .env("PATH", dir.path())
+        .args(["dev", "env"])
+        .output()
+        .expect("human");
+    let text = String::from_utf8_lossy(&human.stdout);
+    assert!(text.contains("DevGuard dev env"));
+    assert!(text.contains("clean: no"));
+    assert!(text.contains("runs package audit: no"));
+    assert!(!text.to_ascii_lowercase().contains("healthy"));
 }
 
 #[test]

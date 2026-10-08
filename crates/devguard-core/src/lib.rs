@@ -2,6 +2,7 @@
 
 pub mod collector;
 pub mod config;
+pub mod dev_env;
 pub mod doctor;
 pub mod energy;
 pub mod error;
@@ -26,6 +27,7 @@ pub mod watch;
 
 pub use collector::{Collection, CollectionStatus, Collector};
 pub use config::{Config, ConfigError, ConfigPaths};
+pub use dev_env::{format_dev_env_human, scan_dev_env, version_line, DevEnvReport};
 pub use doctor::{DoctorReport, PrerequisiteCheck, PrerequisiteStatus};
 pub use error::{DevGuardError, Result};
 pub use exit::ExitCode;
