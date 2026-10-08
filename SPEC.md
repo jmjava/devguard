@@ -222,6 +222,7 @@ Severity categories: `info`, `warning`, `critical`, `unknown`; every rule is doc
 
 - Prefer orchestration of established `restic` or `rustic` binaries; pin and verify supported versions.
 - Explicit include/exclude paths; exclude caches, build outputs and huge models unless configured; warn on excluded or unreadable files.
+- `backup plan` lists include paths, exclude patterns, unreadable paths, and huge-model warnings. It is a dry run. It does not choose `restic` or `rustic`, run either binary, create a repository, write a snapshot, or log a password. If no backup engine or repository is configured, the result is `unavailable` and not clean. An empty include list is not a plan of the whole disk. The command does not call `restic`, `rustic`, `systemctl`, or sudo.
 - Encryption handled by backup engine. Never persist repository passwords in config, command arguments, logs or snapshots. Prefer secure password-file/FD or supported credential mechanisms, following backend guidance.
 - Backend destinations: local external drive first, then user-selected SFTP/cloud repo supported by chosen engine.
 - Implement `plan`, `run`, `list`, `verify`, and `restore --dry-run` first.

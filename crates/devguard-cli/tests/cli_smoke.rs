@@ -28,7 +28,8 @@ fn help_lists_core_commands() {
         .stdout(predicate::str::contains("dev"))
         .stdout(predicate::str::contains("security"))
         .stdout(predicate::str::contains("snapshot"))
-        .stdout(predicate::str::contains("schedule"));
+        .stdout(predicate::str::contains("schedule"))
+        .stdout(predicate::str::contains("backup"));
 }
 
 #[test]
@@ -3724,7 +3725,8 @@ fn security_help_keeps_existing_commands_and_adds_diff() {
         .stdout(predicate::str::contains("updates"))
         .stdout(predicate::str::contains("ssh-auth"))
         .stdout(predicate::str::contains("scan"))
-        .stdout(predicate::str::contains("diff"));
+        .stdout(predicate::str::contains("diff"))
+        .stdout(predicate::str::contains("findings"));
     devguard()
         .args(["security", "diff", "--help"])
         .assert()
@@ -3957,4 +3959,436 @@ fn drift_payload(
         ports_clean = ports_available && unparsed_rows == 0,
         units_clean = units_available,
     )
+}
+#[test]
+fn security_findings_help_documents_the_severity_filter() {
+    devguard()
+        .args(["security", "findings", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--severity"))
+        .stdout(predicate::str::contains("info"))
+        .stdout(predicate::str::contains("warning"))
+        .stdout(predicate::str::contains("critical"))
+        .stdout(predicate::str::contains("unknown"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("malware"));
+}
+
+#[test]
+fn security_findings_without_severity_prints_every_finding() {
+    let dir = tempdir().expect("tempdir");
+    let plain = dir.path().join("plain.toml");
+    let token = "token=ghp_SuperSecretTokenValue";
+    std::fs::write(&plain, token.as_bytes()).unwrap();
+    let mut file_perms = std::fs::metadata(&plain).unwrap().permissions();
+    file_perms.set_mode(0o640);
+    std::fs::set_permissions(&plain, file_perms).unwrap();
+    let config = allowlist_config(dir.path(), &[plain.display().to_string()]);
+    let (ufw, nft, ssh) = firewall_fixtures();
+    let (notifier, status, lists) = write_quiet_updates(dir.path());
+
+    let scan = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "security",
+            "scan",
+        ])
+        .output()
+        .expect("security scan");
+    let findings = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "security",
+            "findings",
+        ])
+        .output()
+        .expect("security findings");
+    assert_eq!(scan.status.code(), Some(0));
+    assert_eq!(findings.status.code(), Some(0));
+    let scan_value: serde_json::Value = serde_json::from_slice(&scan.stdout).expect("scan json");
+    let value: serde_json::Value = serde_json::from_slice(&findings.stdout).expect("findings json");
+    assert_eq!(value["command"], "security findings");
+    assert_eq!(value["data"]["severity"], serde_json::Value::Null);
+    assert_eq!(value["data"]["findings"], scan_value["data"]["findings"]);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["unfamiliar_name_is_malware"], false);
+    let stdout = String::from_utf8_lossy(&findings.stdout);
+    assert!(!stdout.contains(token));
+}
+
+#[test]
+fn security_findings_severity_warning_keeps_only_warnings() {
+    let dir = tempdir().expect("tempdir");
+    let plain = dir.path().join("plain.toml");
+    std::fs::write(&plain, b"mode-only\n").unwrap();
+    let mut perms = std::fs::metadata(&plain).unwrap().permissions();
+    perms.set_mode(0o640);
+    std::fs::set_permissions(&plain, perms).unwrap();
+    let config = allowlist_config(dir.path(), &[plain.display().to_string()]);
+    let (ufw, nft, ssh) = firewall_fixtures();
+    let notifier = dir.path().join("updates-available");
+    let status = dir.path().join("status");
+    let lists = dir.path().join("lists");
+    std::fs::write(&notifier, "0 updates can be applied immediately.\n").unwrap();
+    std::fs::write(
+        &status,
+        "Package: bash\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1.0\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(&lists).unwrap();
+    std::fs::write(
+        lists.join("security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"),
+        "Package: bash\nArchitecture: amd64\nVersion: 1.1\n",
+    )
+    .unwrap();
+    let output = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "security",
+            "findings",
+            "--severity",
+            "warning",
+        ])
+        .output()
+        .expect("security findings");
+    assert_eq!(output.status.code(), Some(2));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["command"], "security findings");
+    assert_eq!(value["data"]["severity"], "warning");
+    assert_eq!(value["data"]["clean"], true);
+    let findings = value["data"]["findings"].as_array().expect("findings");
+    assert!(!findings.is_empty());
+    assert!(findings.iter().all(|item| item["severity"] == "warning"));
+    assert!(findings.iter().any(|item| {
+        item["fact"]
+            .as_str()
+            .unwrap_or("")
+            .contains("bash 1.0 -> 1.1")
+    }));
+    assert!(findings.iter().all(|item| {
+        !item["fact"]
+            .as_str()
+            .unwrap_or("")
+            .contains("ufw status is active")
+    }));
+}
+
+#[test]
+fn security_findings_info_filter_keeps_a_missing_path_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    let missing = dir.path().join("absent.toml");
+    let config = allowlist_config(dir.path(), &[missing.display().to_string()]);
+    let (ufw, nft, ssh) = firewall_fixtures();
+    let (notifier, status, lists) = write_quiet_updates(dir.path());
+    let output = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "security",
+            "findings",
+            "--severity",
+            "info",
+        ])
+        .output()
+        .expect("security findings");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard security findings"));
+    assert!(stdout.contains("severity: info"));
+    assert!(stdout.contains("clean: no"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("unfamiliar name is malware: no"));
+    assert!(!stdout.contains("[unknown]"));
+    assert!(!stdout.contains("[warning]"));
+
+    let json = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "security",
+            "findings",
+            "--severity",
+            "unknown",
+        ])
+        .output()
+        .expect("unknown findings");
+    assert_eq!(json.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&json.stdout).expect("json");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["severity"], "unknown");
+    let findings = value["data"]["findings"].as_array().expect("findings");
+    assert!(findings
+        .iter()
+        .any(|item| { item["source"] == "paths" && item["severity"] == "unknown" }));
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap_or("").contains("paths unavailable")));
+}
+
+#[test]
+fn security_findings_rejects_an_unknown_severity_name() {
+    devguard()
+        .args(["security", "findings", "--severity", "malware"])
+        .assert()
+        .code(64)
+        .stderr(predicate::str::contains("severity must be"));
+}
+
+#[test]
+fn backup_plan_help_documents_the_dry_run() {
+    devguard()
+        .args(["backup", "plan", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unreadable"))
+        .stdout(predicate::str::contains("huge"))
+        .stdout(predicate::str::contains("whole disk"))
+        .stdout(predicate::str::contains("repository"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("restic"))
+        .stdout(predicate::str::contains("password"));
+}
+
+#[test]
+fn backup_help_lists_plan() {
+    let output = devguard()
+        .args(["backup", "--help"])
+        .output()
+        .expect("backup help");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("plan"));
+    assert!(!stdout.contains("restore"));
+    assert!(!stdout.contains("verify"));
+}
+
+fn write_backup_config(path: &std::path::Path, body: &str) {
+    std::fs::write(path, body).unwrap();
+}
+
+#[test]
+fn backup_plan_json_lists_includes_and_huge_model_warnings() {
+    let dir = tempdir().unwrap();
+    let include = dir.path().join("proj");
+    std::fs::create_dir_all(include.join("models")).unwrap();
+    let secret = "password=hunter2-backup-plan";
+    std::fs::write(include.join("weights.gguf"), secret.as_bytes()).unwrap();
+    std::fs::write(include.join("notes.txt"), b"keep").unwrap();
+    let repo = dir.path().join("repo");
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        &format!(
+            "schema_version = 1\n\n[backup]\nengine = \"restic\"\nrepository = {repo:?}\ninclude = [{include:?}]\nexclude = [\"**/*.gguf\", \"**/models/**\"]\n",
+            repo = repo.display().to_string(),
+            include = include.display().to_string(),
+        ),
+    );
+    let output = devguard()
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "backup",
+            "plan",
+        ])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains(secret), "{stdout}");
+    assert!(!repo.exists());
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "backup plan");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["dry_run"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["whole_disk"], false);
+    assert_eq!(value["data"]["runs_engine"], false);
+    assert_eq!(value["data"]["engine_selected"], false);
+    assert_eq!(value["data"]["writes_snapshot"], false);
+    assert_eq!(value["data"]["creates_repository"], false);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["calls_systemctl"], false);
+    assert_eq!(value["data"]["includes"][0]["status"], "available");
+    assert!(value["data"]["excludes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str() == Some("**/*.gguf")));
+    let warnings = value["data"]["huge_model_warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|item| item.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(warnings.contains("weights.gguf"), "{warnings}");
+    assert!(warnings.contains("models"), "{warnings}");
+}
+
+#[test]
+fn backup_plan_empty_include_is_not_a_whole_disk_plan() {
+    let dir = tempdir().unwrap();
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        "schema_version = 1\n\n[backup]\nengine = \"restic\"\nrepository = \"/tmp/devguard-backup-plan-missing-repo\"\ninclude = []\nexclude = []\n",
+    );
+    let output = devguard()
+        .args(["--config", config.to_str().unwrap(), "backup", "plan"])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("not a plan of the whole disk"));
+    assert!(stdout.contains("whole disk: no"));
+    assert!(stdout.contains("clean: no"));
+    assert!(stdout.contains("Includes"));
+    assert!(stdout.contains("Excludes"));
+    assert!(stdout.contains("Unreadable"));
+    assert!(stdout.contains("Huge-model warnings"));
+}
+
+#[test]
+fn backup_plan_missing_repository_is_unavailable() {
+    let dir = tempdir().unwrap();
+    let include = dir.path().join("docs");
+    std::fs::create_dir(&include).unwrap();
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        &format!(
+            "schema_version = 1\n\n[backup]\nengine = \"restic\"\ninclude = [{include:?}]\nexclude = []\n",
+            include = include.display().to_string(),
+        ),
+    );
+    let output = devguard()
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "backup",
+            "plan",
+        ])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["data"]["repository_status"], "unavailable");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["whole_disk"], false);
+    assert_eq!(value["data"]["runs_engine"], false);
+}
+
+#[test]
+fn backup_plan_missing_include_is_unreadable() {
+    let dir = tempdir().unwrap();
+    let missing = dir.path().join("absent");
+    let repo = dir.path().join("repo");
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        &format!(
+            "schema_version = 1\n\n[backup]\nengine = \"restic\"\nrepository = {repo:?}\ninclude = [{missing:?}]\nexclude = []\n",
+            repo = repo.display().to_string(),
+            missing = missing.display().to_string(),
+        ),
+    );
+    let output = devguard()
+        .args(["--config", config.to_str().unwrap(), "backup", "plan"])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("missing"));
+    assert!(stdout.contains("clean: no"));
+    assert!(!repo.exists());
+}
+
+#[test]
+fn backup_plan_redacts_a_repository_password_and_does_not_call_engines() {
+    let dir = tempdir().unwrap();
+    let include = dir.path().join("docs");
+    std::fs::create_dir(&include).unwrap();
+    std::fs::write(include.join("notes.txt"), b"keep").unwrap();
+    let bin = dir.path().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let marker = dir.path().join("engine-called");
+    for name in ["restic", "rustic", "systemctl", "sudo"] {
+        let path = bin.join(name);
+        std::fs::write(
+            &path,
+            "#!/bin/sh\nprintf '%s\\n' \"$0\" >> \"$DEVGUARD_CALLED_STUB\"\nexit 0\n",
+        )
+        .unwrap();
+        let mut perms = std::fs::metadata(&path).unwrap().permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&path, perms).unwrap();
+    }
+    let secret = "s3cret";
+    let repository = format!("https://user:{secret}@backup.example/repo");
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        &format!(
+            "schema_version = 1\n\n[backup]\nengine = \"rustic\"\nrepository = {repository:?}\ninclude = [{include:?}]\nexclude = []\n",
+            include = include.display().to_string(),
+        ),
+    );
+    let path = std::env::var("PATH").unwrap_or_default();
+    let output = devguard()
+        .env("PATH", format!("{}:{}", bin.display(), path))
+        .env("DEVGUARD_CALLED_STUB", &marker)
+        .args(["--config", config.to_str().unwrap(), "backup", "plan"])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains(secret), "{stdout}");
+    assert!(stdout.contains("[REDACTED]"));
+    assert!(stdout.contains("engine selected: no"));
+    assert!(stdout.contains("runs engine: no"));
+    assert!(!marker.exists(), "backup plan invoked a stub binary");
 }

@@ -13,6 +13,7 @@ DevGuard observes; it does not remediate by default.
 - `security diff` compares listening ports and failed units in two stored snapshots. It does not rescan the host, read the journal, or change firewall rules. A missing collector is `unknown`, not a clean "nothing changed" result. An unfamiliar process name is not malware proof.
 - `security paths` checks only `security.sensitive_path_allowlist`. It reads mode bits and, when the local account database has them, owner and group names. It does not recurse, use sudo, or read file contents. An empty allowlist is not a clean disk scan.
 - `security scan` prints findings from the firewall, path, and security-update checks. Severity is a separate field from the fact. An unavailable source is `unknown` and the scan is not clean. An unfamiliar name is not proof of malware. The command does not use sudo, recurse, read file contents, change firewall rules, or run apt.
+- `security findings` prints those same findings. `--severity` keeps one level (`info`, `warning`, `critical`, or `unknown`). Omitting the flag prints every finding. Filtering a row out of the list does not change coverage: an unavailable source stays `unknown` and the result is not clean. The command does not collect new sources or use sudo.
 
 ## Downstairs WSL helper
 

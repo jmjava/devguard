@@ -7,4 +7,4 @@
 5. `devguard backup restore --snapshot ID --target /safe/path --dry-run`
 6. Actual restore requires `--apply` and confirmation
 
-Not implemented in M0.
+`backup plan` is a dry run: it lists includes, excludes, unreadable paths, and huge-model warnings. It does not run a backup engine or create a repository. `backup run`, `verify`, and `restore` are not implemented yet.
