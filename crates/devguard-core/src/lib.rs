@@ -18,6 +18,7 @@ pub mod remote;
 pub mod runaway;
 pub mod sensors;
 pub mod slm;
+pub mod slm_checklist;
 pub mod slm_export;
 pub mod slm_run;
 pub mod thresholds;
@@ -50,6 +51,7 @@ pub use slm::{
     LatencyMetrics, MeasurementPlane, QualityMetrics, SlmRunRecord, SystemObservation,
     SLM_RUN_SCHEMA_VERSION,
 };
+pub use slm_checklist::{format_paper_checklist, paper_checklist, PaperChecklist};
 pub use slm_export::{export_paper_table, paper_row, PaperRow, WrittenExport, PAPER_COLUMNS};
 pub use thresholds::{evaluate_thresholds, ThresholdSample, ThresholdWarning, RULES_OF_THUMB};
 pub use watch::{
