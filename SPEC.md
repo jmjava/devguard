@@ -70,6 +70,8 @@ devguard health sensors [--json]        # package, CPU, and board temperatures p
 devguard health os [--json]             # kernel release, boot id, and uptime; hostname is only a hash
 devguard health units [--json]          # systemd unit name, enabled, active, and failed; read-only
 devguard health packages [--json]       # installed package names and versions; pending updates when APT lists are readable
+devguard security updates [--json]      # OS security-update status from update-notifier or security-pocket APT lists
+devguard security paths [--json]        # mode bits for allowlisted paths; a missing path is unavailable
 devguard health watch --interval 5s     # TUI, exits cleanly on Ctrl+C
 devguard health gpu-id [--json]         # NVIDIA driver, GPU name, and PCI bus id; a missing tool or field is unavailable
 devguard gpu scan [--json]              # one-shot nvidia-smi reading; a missing tool or field is unavailable
@@ -206,7 +208,7 @@ Read-only checks, each with source/coverage/confidence:
 - SSH login history and failed auth attempts where permitted; avoid copying credentials or full journal payloads.
 - Firewall status (`ufw`/nftables detection), SSH exposure/configuration where readable.
 - `security firewall` reports `ufw status verbose` and an nftables ruleset listing, plus SSH port, listen address, and authentication settings where `sshd_config` is readable. A missing `ufw`, `nft`, or unreadable sshd config is `unavailable`, and the result is not clean. The command does not run `ufw enable` or `ufw disable`, does not change nftables rules, and does not use sudo. nftables output is detection, not a full audit. Match blocks are counted and not applied.
-- OS security update status using Ubuntu-supported interfaces; never silently install updates.
+- OS security update status using Ubuntu-supported interfaces; never silently install updates. `security updates` reads the update-notifier status file or security-pocket APT list files already on disk. It does not run `apt install`, `apt upgrade`, `apt full-upgrade`, or `apt update`, and it does not use sudo. It does not inventory every installed package. A missing or unreadable security-update source is `unavailable`, and that result is not clean.
 - File permission checks for selected sensitive user-owned paths; no recursive global scan by default.
 - `security paths` reads mode bits for each path in `security.sensitive_path_allowlist`, and owner and group names when the local account database provides them without sudo. It does not recurse, follow symlinks, use sudo, or read file contents. A missing or unreadable path is `unavailable`, and the result is not clean. An empty allowlist means no paths were configured, and that result is not a clean scan of the disk.
 - Developer dependency audit integration (opt-in; respect tool availability and potential network egress).
