@@ -2865,6 +2865,190 @@ fn snapshot_create_list_diff_uses_a_temp_database() {
     assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
 }
 
+const UPGRADE_PRE: &str = include_str!("../../devguard-core/fixtures/snapshots/pre-upgrade.json");
+const UPGRADE_POST: &str = include_str!("../../devguard-core/fixtures/snapshots/post-upgrade.json");
+const UPGRADE_PARTIAL: &str =
+    include_str!("../../devguard-core/fixtures/snapshots/partial-coverage.json");
+
+#[test]
+fn upgrade_fixtures_diff_uses_a_temp_database() {
+    let dir = tempdir().expect("tempdir");
+    let config = dir.path().join("missing-config.toml");
+    let db_path = dir.path().join("devguard.db");
+    let store = devguard_store::Store::open(&db_path).expect("open temp db");
+    insert_fixture(
+        &store,
+        "baseline-pre",
+        "2026-10-01T00:00:00.000Z",
+        "pre-upgrade",
+        UPGRADE_PRE,
+    );
+    insert_fixture(
+        &store,
+        "current-post",
+        "2026-10-02T00:00:00.000Z",
+        "post-upgrade",
+        UPGRADE_POST,
+    );
+    insert_fixture(
+        &store,
+        "current-partial",
+        "2026-10-03T00:00:00.000Z",
+        "post-upgrade",
+        UPGRADE_PARTIAL,
+    );
+    drop(store);
+
+    let clean_diff = snapshot_diff(&dir, &config, "baseline-pre", "current-post");
+    assert_eq!(clean_diff.status.code(), Some(0));
+    let clean_json: serde_json::Value =
+        serde_json::from_slice(&clean_diff.stdout).expect("clean diff json");
+    assert_eq!(clean_json["command"], "snapshot diff");
+    assert_eq!(clean_json["data"]["baseline_clean"], true);
+    assert_eq!(clean_json["data"]["current_clean"], true);
+    assert_upgrade_facts(&clean_json);
+    assert!(
+        clean_json.get("warnings").is_none()
+            || clean_json["warnings"].as_array().unwrap().is_empty()
+    );
+
+    let partial_diff = snapshot_diff(&dir, &config, "baseline-pre", "current-partial");
+    assert_eq!(partial_diff.status.code(), Some(3));
+    let partial_stdout = String::from_utf8_lossy(&partial_diff.stdout);
+    let partial_json: serde_json::Value =
+        serde_json::from_str(&partial_stdout).expect("partial diff json");
+    assert_eq!(partial_json["data"]["baseline_clean"], true);
+    assert_eq!(partial_json["data"]["current_clean"], false);
+    assert_upgrade_facts(&partial_json);
+    let warnings = partial_json["warnings"].as_array().expect("warnings");
+    assert!(warnings
+        .iter()
+        .any(|warning| warning == "current current-partial is partial"));
+    assert!(warnings
+        .iter()
+        .all(|warning| warning != "current current-partial is clean"));
+
+    let human = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "snapshot",
+            "diff",
+            "baseline-pre",
+            "current-partial",
+        ])
+        .output()
+        .expect("human diff");
+    assert_eq!(human.status.code(), Some(3));
+    let human_stdout = String::from_utf8_lossy(&human.stdout);
+    assert!(human_stdout.contains("current clean: no"));
+    assert!(!human_stdout.contains("current clean: yes"));
+    assert!(human_stdout.contains("fact: 6.8.0-45-generic -> 7.0.0-38-generic"));
+    assert!(human_stdout.contains("severity: warning"));
+    assert!(!human_stdout.contains("fact: warning"));
+
+    let listed = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "snapshot",
+            "list",
+        ])
+        .output()
+        .expect("list");
+    assert!(listed.status.success());
+    let list: serde_json::Value = serde_json::from_slice(&listed.stdout).expect("list json");
+    let rows = list["data"]["snapshots"].as_array().expect("rows");
+    let partial = rows
+        .iter()
+        .find(|row| row["id"] == "current-partial")
+        .expect("partial row");
+    assert_eq!(partial["clean"], false);
+    let post = rows
+        .iter()
+        .find(|row| row["id"] == "current-post")
+        .expect("post row");
+    assert_eq!(post["clean"], true);
+}
+
+fn insert_fixture(
+    store: &devguard_store::Store,
+    id: &str,
+    created_at: &str,
+    label: &str,
+    payload: &str,
+) {
+    store
+        .insert_snapshot(&devguard_store::Snapshot {
+            id: id.into(),
+            created_at: created_at.into(),
+            label: Some(label.into()),
+            run_id: None,
+            payload: payload.into(),
+        })
+        .expect("insert fixture");
+}
+
+fn snapshot_diff(
+    dir: &tempfile::TempDir,
+    config: &std::path::Path,
+    baseline: &str,
+    current: &str,
+) -> std::process::Output {
+    devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "snapshot",
+            "diff",
+            baseline,
+            current,
+        ])
+        .output()
+        .expect("snapshot diff")
+}
+
+fn assert_upgrade_facts(value: &serde_json::Value) {
+    let changed = value["data"]["changed"].as_array().expect("changed");
+    let added = value["data"]["added"].as_array().expect("added");
+    let kernel = fact_named(changed, "os:kernel_release");
+    assert_eq!(kernel.0, "6.8.0-45-generic -> 7.0.0-38-generic");
+    assert_eq!(kernel.1, "warning");
+    let driver = fact_named(changed, "gpu:00000000:01:00.0:driver_version");
+    assert_eq!(driver.0, "550.90.07 -> 580.95.05");
+    assert_eq!(driver.1, "warning");
+    let package = fact_named(changed, "package:linux-image-generic:amd64");
+    assert_eq!(package.0, "6.8.0-45.45 -> 7.0.0-38.38");
+    assert_eq!(package.1, "info");
+    let port = fact_named(added, "port:tcp:127.0.0.1:11434");
+    assert_eq!(port.0, "process=ollama");
+    assert_eq!(port.1, "warning");
+    for entries in [changed, added] {
+        for entry in entries {
+            let fact = entry["fact"].as_str().expect("fact");
+            let severity = entry["severity"].as_str().expect("severity");
+            assert_ne!(fact, severity);
+            assert!(!matches!(fact, "info" | "warning" | "critical" | "unknown"));
+        }
+    }
+}
+
+fn fact_named(entries: &[serde_json::Value], key: &str) -> (String, String) {
+    let entry = entries
+        .iter()
+        .find(|entry| entry["key"] == key)
+        .unwrap_or_else(|| panic!("missing {key}"));
+    (
+        entry["fact"].as_str().expect("fact").to_string(),
+        entry["severity"].as_str().expect("severity").to_string(),
+    )
+}
+
 #[test]
 fn security_updates_help_documents_read_only_sources() {
     devguard()
