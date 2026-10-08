@@ -16,6 +16,7 @@ Later milestones add `devguard-host`, `devguard-health`, `devguard-security`, `d
 
 - Config: `~/.config/devguard/config.toml` (mode `0600` on init)
 - State: `~/.local/state/devguard/devguard.db` (SQLite tables `runs`, `observations`, `snapshots`)
+- `devguard schedule dry-run` prints a systemd user unit and does not write `~/.config/systemd`
 
 ## SLM metrics direction
 

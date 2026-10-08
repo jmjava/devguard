@@ -15,7 +15,7 @@ tags:
 
 Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest.json`.
 
-`[x]` = done · `[ ]` = open · **50 total**
+`[x]` = done · `[ ]` = open · **51 total**
 
 ---
 
@@ -63,7 +63,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 
 ## E. Security Sentinel (M3) — 6
 
-- [ ] #devguard #m3 Port + service drift vs baseline → findings (`info|warning|critical|unknown`)
+- [x] #devguard #m3 Port + service drift vs baseline → findings (`info|warning|critical|unknown`)
 - [x] #devguard #m3 Firewall status (`ufw`/nftables) + readable SSH exposure/config checks
 - [x] #devguard #m3 SSH login / failed-auth adapter (no credentials or full journal dumps)
 - [x] #devguard #m3 OS security-update status via Ubuntu interfaces (never auto-install)
@@ -73,7 +73,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 ## F. Backup Guardian (M4) — 6
 
 - [ ] #devguard #m4 Choose first engine (restic **or** rustic); pin versions; document password-file/FD/keyring
-- [ ] #devguard #m4 `backup plan` dry-run: includes/excludes, unreadable paths, huge-model warnings
+- [x] #devguard #m4 `backup plan` dry-run: includes/excludes, unreadable paths, huge-model warnings
 - [ ] #devguard #m4 `backup run` / `list` against configured repo only; never log/argv/config passwords
 - [ ] #devguard #m4 `backup verify [--sample]` — metadata vs sampled content; record snapshot identity
 - [ ] #devguard #m4 Safe restore (`--dry-run` → `--apply` + confirm) + integration hash-match test
@@ -86,9 +86,10 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 - [x] #devguard #m5 Opt-in `dev deps audit` (cargo-audit/npm/pip/maven); network scans explicit only
 - [x] #devguard #m5 Sanitize output/logs so token-like fixture strings never appear
 
-## H. Ops & multi-node (M6–M7) — 4
+## H. Ops & multi-node (M6–M7) — 5
 
-- [ ] #devguard #m6 Opt-in `systemd --user` timers + local alerts/report files + retention dry-run
+- [x] #devguard #m6 Opt-in `systemd --user` timers
+- [ ] #devguard #m6 local alerts/report files + retention dry-run
 - [ ] #devguard #m6 Packaging/release notes + idle-overhead benchmark (no port until user enables)
 - [ ] #devguard #m7 Multi-node PoC design: allowlisted read-only metrics, mTLS, peer allowlist — **no remote shell**
 - [ ] #devguard #m7 AMD ROCm/Halo health provider spike only after NVIDIA path is stable

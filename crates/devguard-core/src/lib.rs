@@ -1,5 +1,6 @@
 //! DevGuard core library: configuration, errors, JSON envelopes, and collector contracts.
 
+pub mod backup_plan;
 pub mod collector;
 pub mod config;
 pub mod dev_deps;
@@ -25,6 +26,8 @@ pub mod ports;
 pub mod redact;
 pub mod remote;
 pub mod runaway;
+pub mod schedule;
+pub mod security_drift;
 pub mod security_scan;
 pub mod security_updates;
 pub mod sensors;
@@ -38,6 +41,10 @@ pub mod thresholds;
 pub mod units;
 pub mod watch;
 
+pub use backup_plan::{
+    format_backup_plan_human, plan_backup, BackupPlanReport, PlanCoverage, PlannedInclude,
+    UnreadablePath,
+};
 pub use collector::{Collection, CollectionStatus, Collector};
 pub use config::{Config, ConfigError, ConfigPaths};
 pub use dev_deps::{
@@ -72,9 +79,16 @@ pub use remote::{
 pub use runaway::{
     format_runaway_human, scan_runaways, RunawayProcess, RunawayReport, RunawayThresholds,
 };
+pub use schedule::{
+    format_schedule_dry_run_human, schedule_dry_run, ScanCalendar, ScheduleDryRunReport,
+};
+pub use security_drift::{
+    diff_stored_payloads, diff_stored_payloads_with_rules, format_security_drift_human,
+    DriftFinding, DriftRules, SecurityDriftReport,
+};
 pub use security_scan::{
-    findings_from, format_security_scan_human, scan_security, Finding, FindingSeverity,
-    SecurityScanReport,
+    filter_findings, findings_from, format_security_findings_human, format_security_scan_human,
+    scan_security, Finding, FindingSeverity, SecurityFindingsReport, SecurityScanReport,
 };
 pub use security_updates::{
     format_security_updates_human, read_security_updates, scan_security_updates,

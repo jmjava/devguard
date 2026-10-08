@@ -91,6 +91,7 @@ devguard backup restore --snapshot ID --target PATH --dry-run
 devguard dev env [--json]
 devguard dev repos scan [PATH...] [--json]
 devguard dev deps audit [--online] [--json]  # network audit only with --online
+devguard schedule dry-run [--json]       # print an opt-in systemd --user timer; does not install it
 ```
 
 CLI conventions:
@@ -205,6 +206,7 @@ Collect:
 
 Read-only checks, each with source/coverage/confidence:
 - New listening ports and changed services versus a baseline.
+- `security diff <BASELINE_ID> <CURRENT_ID>` reads two snapshots already stored by `devguard snapshot`. It reports added and removed listening ports and added and removed failed systemd units. Each entry has a fact and a separate severity (`info`, `warning`, `critical`, or `unknown`). A missing snapshot is an operational error. A snapshot whose port or unit collector is unavailable is not clean, and that gap is `unknown` rather than proof that nothing changed. Unparsed port rows are the same kind of gap. The command does not rescan the host, use sudo, or open a network connection. An unfamiliar process name is not malware proof. A new loopback listener is `warning`. A new listener that is not loopback is `critical`. A listener or failed unit that disappeared is `info`. A unit that entered the failed set is `warning`. The default severities can be replaced without changing the fact.
 - `security ssh-auth` reports SSH login history from `last` and failed auth attempts from the journal and the auth log, where each source is readable. It reports counts, timestamps, and source addresses only when those fields are already present. It does not copy credentials, passwords, private keys, or full journal payloads. A missing journal, missing `last`, or unreadable auth log is `unavailable`, and that result is not clean. The command does not use sudo, start or stop sshd, or change sshd config.
 - Firewall status (`ufw`/nftables detection), SSH exposure/configuration where readable.
 - `security firewall` reports `ufw status verbose` and an nftables ruleset listing, plus SSH port, listen address, and authentication settings where `sshd_config` is readable. A missing `ufw`, `nft`, or unreadable sshd config is `unavailable`, and the result is not clean. The command does not run `ufw enable` or `ufw disable`, does not change nftables rules, and does not use sudo. nftables output is detection, not a full audit. Match blocks are counted and not applied.
@@ -220,6 +222,7 @@ Severity categories: `info`, `warning`, `critical`, `unknown`; every rule is doc
 
 - Prefer orchestration of established `restic` or `rustic` binaries; pin and verify supported versions.
 - Explicit include/exclude paths; exclude caches, build outputs and huge models unless configured; warn on excluded or unreadable files.
+- `backup plan` lists include paths, exclude patterns, unreadable paths, and huge-model warnings. It is a dry run. It does not choose `restic` or `rustic`, run either binary, create a repository, write a snapshot, or log a password. If no backup engine or repository is configured, the result is `unavailable` and not clean. An empty include list is not a plan of the whole disk. The command does not call `restic`, `rustic`, `systemctl`, or sudo.
 - Encryption handled by backup engine. Never persist repository passwords in config, command arguments, logs or snapshots. Prefer secure password-file/FD or supported credential mechanisms, following backend guidance.
 - Backend destinations: local external drive first, then user-selected SFTP/cloud repo supported by chosen engine.
 - Implement `plan`, `run`, `list`, `verify`, and `restore --dry-run` first.
@@ -348,6 +351,8 @@ Deliver: Git workspace hygiene, environment inventory, opt-in dependency adapter
 Deliver: systemd user timers for **opt-in** scheduled scans/backups, alert output (local notification or report file), rotation/retention controls, package/release instructions, benchmark of idle overhead.
 
 **Acceptance:** Scheduling can be disabled completely; no hidden privileged service; safe restarts; documented maintenance and recovery.
+
+`devguard schedule dry-run` is the first slice of that timer. It prints the user service and timer text for a later `devguard health scan`. It does not write `~/.config/systemd`, run `systemctl`, enable the timer, or use sudo. The timer stays off until `schedule.enabled` is true. Until then the result says the timer is not requested and is not clean. Alerts, retention, packaging, and multi-node stay later.
 
 ### M7 — Multi-node (explicitly deferred)
 

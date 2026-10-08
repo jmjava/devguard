@@ -1,5 +1,6 @@
 //! DevGuard CLI entrypoint.
 
+mod cmd_security_diff;
 mod cmd_slm_checklist;
 mod cmd_slm_energy;
 mod cmd_slm_export;
@@ -14,7 +15,8 @@ use std::path::PathBuf;
 use std::process::ExitCode as StdExitCode;
 
 use clap::{Parser, Subcommand};
-use devguard_core::config::{Config, ConfigPaths};
+use devguard_core::backup_plan::{format_backup_plan_human, plan_backup};
+use devguard_core::config::{BackupConfig, Config, ConfigPaths};
 use devguard_core::dev_deps::{format_deps_audit_human, scan_deps_audit};
 use devguard_core::dev_env::{format_dev_env_human, scan_dev_env};
 use devguard_core::dev_repos::{format_dev_repos_human, scan_dev_repos};
@@ -35,7 +37,11 @@ use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
 };
 use devguard_core::runaway::{format_runaway_human, scan_runaways, RunawayThresholds};
-use devguard_core::security_scan::{format_security_scan_human, scan_security};
+use devguard_core::schedule::{format_schedule_dry_run_human, schedule_dry_run, ScanCalendar};
+use devguard_core::security_scan::{
+    filter_findings, format_security_findings_human, format_security_scan_human, scan_security,
+    FindingSeverity,
+};
 use devguard_core::security_updates::{format_security_updates_human, scan_security_updates};
 use devguard_core::sensors::{format_sensors_human, scan_sensors};
 use devguard_core::ssh_auth::{format_ssh_auth_human, scan_ssh_auth};
@@ -67,7 +73,11 @@ adapters. It does not contact the network or transmit a manifest unless `--onlin
 is set. A missing local tool is unavailable, and that result is not clean. \
 `security ssh-auth` reports SSH login counts, timestamps, and source addresses \
 from `last`, the journal, and the auth log when those sources are readable. \
-It does not copy credentials or full journal payloads, use sudo, or change sshd."
+It does not copy credentials or full journal payloads, use sudo, or change sshd. \
+`schedule dry-run` prints an opt-in systemd --user timer for a later scan. \
+It does not write under ~/.config/systemd, run systemctl, enable a timer, \
+or use sudo. If the operator has not opted in, the timer is not requested \
+and that result is not clean."
 )]
 struct Cli {
     /// Path to config.toml (default: ~/.config/devguard/config.toml)
@@ -127,6 +137,21 @@ enum Commands {
     Dev {
         #[command(subcommand)]
         action: DevCommands,
+    },
+    /// Opt-in systemd --user timer for a later scan.
+    ///
+    /// `dry-run` prints the unit text. It does not write under
+    /// `~/.config/systemd`, run `systemctl`, enable a timer, or use sudo.
+    /// If the operator has not opted in, the timer is not requested and the
+    /// result is not clean.
+    Schedule {
+        #[command(subcommand)]
+        action: ScheduleCommands,
+    },
+    /// Dry-run backup plan. Does not run a backup engine or create a repository.
+    Backup {
+        #[command(subcommand)]
+        action: BackupCommands,
     },
     /// Store and diff a workstation snapshot.
     ///
@@ -273,6 +298,33 @@ enum SecurityCommands {
     /// Does not use sudo, recurse, read file contents, change firewall rules,
     /// or run apt.
     Scan,
+    /// Diff listening ports and failed units between two stored snapshots.
+    ///
+    /// Reads snapshot rows already stored by `devguard snapshot`. Does not
+    /// rescan the host, use sudo, or open a network connection. A missing
+    /// snapshot id is an error. If the port or unit collector is unavailable,
+    /// the result is not clean and that gap is unknown. Each entry has a fact
+    /// and a separate severity (info, warning, critical, or unknown). An
+    /// unfamiliar process name is not malware proof.
+    Diff {
+        /// Baseline snapshot id.
+        baseline_id: String,
+        /// Current snapshot id.
+        current_id: String,
+    },
+    /// The same findings as `security scan`, optionally kept to one severity.
+    ///
+    /// Prints the firewall, path, and security-update findings. `--severity`
+    /// keeps only `info`, `warning`, `critical`, or `unknown`. Omitting the
+    /// flag prints every finding. An unavailable source stays `unknown`, and
+    /// the result is not clean even when the filter hides that row. An
+    /// unfamiliar name is not proof of malware. Does not collect new sources,
+    /// use sudo, recurse, read file contents, change firewall rules, or run apt.
+    Findings {
+        /// Keep findings of this severity. Omit to print every finding.
+        #[arg(long, value_name = "LEVEL")]
+        severity: Option<String>,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -332,6 +384,33 @@ enum ReposCommands {
         #[arg(value_name = "PATH")]
         paths: Vec<PathBuf>,
     },
+}
+
+#[derive(Debug, Subcommand)]
+enum ScheduleCommands {
+    /// Print the systemd --user service and timer text.
+    ///
+    /// Does not write a unit file, run `systemctl`, enable the timer, or use
+    /// sudo. Opt in with `schedule.enabled` in the local config. Until then
+    /// the timer is not requested and the result is not clean. The printed
+    /// unit does not contain a secret, a token, or a password.
+    DryRun,
+}
+
+#[derive(Debug, Subcommand)]
+enum BackupCommands {
+    /// Dry-run plan of includes, excludes, unreadable paths, and huge-model warnings.
+    ///
+    /// Lists the configured include paths and exclude patterns. A missing or
+    /// unreadable include is unavailable. Huge-model names (`*.gguf`, `*.bin`,
+    /// and `models` directories) produce warnings. An empty include list is not
+    /// a plan of the whole disk. If the backup engine or repository is not
+    /// configured, the result is unavailable and not clean.
+    ///
+    /// This command does not choose restic or rustic, does not run either binary,
+    /// does not create a repository, and does not write a snapshot. It does not
+    /// call restic, rustic, systemctl, or sudo, and it does not log a password.
+    Plan,
 }
 
 #[derive(Debug, Subcommand)]
@@ -438,6 +517,8 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             SlmCommands::Checklist(action) => cmd_slm_checklist::run(cli.json, paths, action),
         },
         Commands::Dev { action } => run_dev(cli.json, paths, action),
+        Commands::Schedule { action } => run_schedule(cli.json, paths, action),
+        Commands::Backup { action } => run_backup(cli.json, paths, action),
         Commands::Snapshot { action } => cmd_snapshot::run(
             cli.json,
             &config_hash_allowlist(paths)?,
@@ -536,6 +617,40 @@ Next: edit model_dirs / repo paths as needed, then run `devguard doctor`.\n",
             } else {
                 Ok(ExitCode::Partial)
             }
+        }
+    }
+}
+
+fn run_schedule(
+    json: bool,
+    paths: &DevGuardPaths,
+    action: ScheduleCommands,
+) -> Result<ExitCode, devguard_core::DevGuardError> {
+    match action {
+        ScheduleCommands::DryRun => {
+            let loaded = load_config_optional(&paths.config_file)?;
+            let schedule = loaded
+                .as_ref()
+                .map(|config| config.schedule.clone())
+                .unwrap_or_default();
+            let calendar = ScanCalendar::parse(&schedule.on_calendar).ok_or_else(|| {
+                devguard_core::ConfigError::Validation(
+                    "schedule.on_calendar must be daily, hourly, or weekly".into(),
+                )
+            })?;
+            let report = schedule_dry_run(schedule.enabled, calendar);
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("schedule dry-run", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("schedule dry-run", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_schedule_dry_run_human(&report));
+            }
+            Ok(report.exit_code())
         }
     }
 }
@@ -821,6 +936,38 @@ fn run_remote(
     }
 }
 
+fn run_backup(
+    json: bool,
+    paths: &DevGuardPaths,
+    action: BackupCommands,
+) -> Result<ExitCode, devguard_core::DevGuardError> {
+    match action {
+        BackupCommands::Plan => {
+            let report = plan_backup(&backup_settings(paths)?);
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("backup plan", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("backup plan", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_backup_plan_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+    }
+}
+
+fn backup_settings(paths: &DevGuardPaths) -> Result<BackupConfig, devguard_core::DevGuardError> {
+    if paths.config_file.is_file() {
+        Ok(Config::load(&paths.config_file)?.backup)
+    } else {
+        Ok(Config::default().backup)
+    }
+}
+
 fn run_security(
     json: bool,
     paths: &DevGuardPaths,
@@ -901,6 +1048,33 @@ fn run_security(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_security_scan_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        SecurityCommands::Diff {
+            baseline_id,
+            current_id,
+        } => cmd_security_diff::run(json, &remote_state_dir(paths)?, &baseline_id, &current_id),
+        SecurityCommands::Findings { severity } => {
+            let level = match severity.as_deref() {
+                Some(raw) => {
+                    Some(FindingSeverity::parse(raw).map_err(devguard_core::DevGuardError::Usage)?)
+                }
+                None => None,
+            };
+            let allowlist = sensitive_path_allowlist(paths)?;
+            let scan = scan_security(&allowlist);
+            let warnings = scan.warnings();
+            let report = filter_findings(&scan, level);
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("security findings", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("security findings", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_security_findings_human(&report));
             }
             Ok(report.exit_code())
         }

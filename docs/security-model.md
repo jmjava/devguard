@@ -9,8 +9,11 @@ DevGuard observes; it does not remediate by default.
 - No listening sockets or agents in M0–M5.
 - Backup credentials stay outside config (engine password file / OS mechanisms).
 - Failures surface as `unavailable` / warnings, never as clean.
+- `schedule dry-run` prints an opt-in systemd user timer and does not write it, run `systemctl`, enable it, or use sudo. Until `schedule.enabled` is true, the timer is not requested and the result is not clean.
+- `security diff` compares listening ports and failed units in two stored snapshots. It does not rescan the host, read the journal, or change firewall rules. A missing collector is `unknown`, not a clean "nothing changed" result. An unfamiliar process name is not malware proof.
 - `security paths` checks only `security.sensitive_path_allowlist`. It reads mode bits and, when the local account database has them, owner and group names. It does not recurse, use sudo, or read file contents. An empty allowlist is not a clean disk scan.
 - `security scan` prints findings from the firewall, path, and security-update checks. Severity is a separate field from the fact. An unavailable source is `unknown` and the scan is not clean. An unfamiliar name is not proof of malware. The command does not use sudo, recurse, read file contents, change firewall rules, or run apt.
+- `security findings` prints those same findings. `--severity` keeps one level (`info`, `warning`, `critical`, or `unknown`). Omitting the flag prints every finding. Filtering a row out of the list does not change coverage: an unavailable source stays `unknown` and the result is not clean. The command does not collect new sources or use sudo.
 
 ## Downstairs WSL helper
 

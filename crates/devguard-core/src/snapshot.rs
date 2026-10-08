@@ -51,7 +51,7 @@ pub enum SeverityHint {
 }
 
 impl SeverityHint {
-    fn as_str(self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Info => "info",
             Self::Warning => "warning",
