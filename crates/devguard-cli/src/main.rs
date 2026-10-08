@@ -23,6 +23,7 @@ use devguard_core::gpu_id::{format_gpu_id_human, scan_gpu_id};
 use devguard_core::health_scan::{format_health_scan_human, scan_health};
 use devguard_core::json::JsonEnvelope;
 use devguard_core::os_identity::{format_os_human, scan_os};
+use devguard_core::packages::{format_packages_human, scan_packages};
 use devguard_core::ports::{format_ports_human, scan_ports};
 use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
@@ -128,6 +129,13 @@ enum HealthCommands {
     /// Does not use sudo, write a fan curve, load a kernel module, or change BIOS.
     /// Missing `sensors` or `nvidia-smi` is unavailable, never a clean result.
     Fan,
+    /// Installed package names and versions, plus pending updates from local APT lists.
+    ///
+    /// Reads list files only. Does not run apt install, apt upgrade, or any other
+    /// command that changes packages. Does not use sudo. If the APT lists are
+    /// missing or unreadable, pending updates are unavailable and the result is
+    /// not clean.
+    Packages,
     /// Package, CPU, and board temperatures plus fan RPM from hwmon files.
     ///
     /// Does not install packages, use sudo, load a kernel module, or change a fan curve.
@@ -475,6 +483,21 @@ fn run_health(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_fan_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        HealthCommands::Packages => {
+            let report = scan_packages();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("health packages", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("health packages", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_packages_human(&report));
             }
             Ok(report.exit_code())
         }

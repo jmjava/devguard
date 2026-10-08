@@ -1720,3 +1720,122 @@ fn health_units_missing_systemctl_is_not_clean() {
     assert!(stdout.contains("not on PATH"));
     assert!(!stdout.to_ascii_lowercase().contains("healthy"));
 }
+
+#[test]
+fn health_packages_help_documents_read_only_lists() {
+    devguard()
+        .args(["health", "packages", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("apt install"))
+        .stdout(predicate::str::contains("upgrade"));
+}
+
+#[test]
+fn health_packages_json_parses_fixture_lists() {
+    let dir = tempdir().expect("tempdir");
+    let status = dir.path().join("status");
+    let lists = dir.path().join("lists");
+    std::fs::create_dir_all(&lists).unwrap();
+    std::fs::write(
+        &status,
+        "Package: bash\nStatus: install ok installed\nArchitecture: amd64\nVersion: 5.2.21-2ubuntu4\n",
+    )
+    .unwrap();
+    std::fs::write(
+        lists.join("dist_main_binary-amd64_Packages"),
+        "Package: bash\nArchitecture: amd64\nVersion: 5.2.21-2ubuntu5\n\nPackage: bash\nArchitecture: i386\nVersion: 99.0\n",
+    )
+    .unwrap();
+
+    let output = devguard()
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args(["--json", "health", "packages"])
+        .output()
+        .expect("health packages");
+    assert_eq!(output.status.code(), Some(0));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "health packages");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["changes_packages"], false);
+    assert_eq!(value["data"]["packages"][0]["name"], "bash");
+    assert_eq!(value["data"]["packages"][0]["version"], "5.2.21-2ubuntu4");
+    assert_eq!(value["data"]["packages"][0]["architecture"], "amd64");
+    assert_eq!(value["data"]["pending"][0]["installed"], "5.2.21-2ubuntu4");
+    assert_eq!(value["data"]["pending"][0]["available"], "5.2.21-2ubuntu5");
+    assert_eq!(value["data"]["pending"].as_array().unwrap().len(), 1);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn health_packages_missing_lists_are_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    let status = dir.path().join("status");
+    std::fs::write(
+        &status,
+        "Package: bash\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1.0\n",
+    )
+    .unwrap();
+    let output = devguard()
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", dir.path().join("missing-lists"))
+        .args(["--json", "health", "packages"])
+        .output()
+        .expect("health packages");
+    assert_eq!(output.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["command"], "health packages");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["status"], "unavailable");
+    assert_eq!(value["data"]["installed"]["status"], "available");
+    assert_eq!(value["data"]["updates"]["status"], "unavailable");
+    assert_eq!(value["data"]["packages"][0]["name"], "bash");
+    assert_eq!(value["data"]["packages"][0]["version"], "1.0");
+    assert!(value["data"]["pending"].as_array().unwrap().is_empty());
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap_or("").contains("updates")));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn health_packages_human_states_the_safety_limits() {
+    let dir = tempdir().expect("tempdir");
+    let status = dir.path().join("status");
+    let lists = dir.path().join("lists");
+    std::fs::create_dir_all(&lists).unwrap();
+    std::fs::write(
+        &status,
+        "Package: coreutils\nStatus: install ok installed\nArchitecture: amd64\nVersion: 9.4-3\n",
+    )
+    .unwrap();
+    std::fs::write(
+        lists.join("dist_main_binary-amd64_Packages"),
+        "Package: coreutils\nArchitecture: amd64\nVersion: 9.4-3\n",
+    )
+    .unwrap();
+    let output = devguard()
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args(["health", "packages"])
+        .output()
+        .expect("health packages");
+    assert_eq!(output.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard health packages"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("changes packages: no"));
+    assert!(stdout.contains("- coreutils 9.4-3 amd64"));
+    assert!(stdout.contains("Pending updates\n  none\n"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}

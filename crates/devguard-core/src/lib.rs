@@ -15,6 +15,7 @@ pub mod health_scan;
 pub mod host_sample;
 pub mod json;
 pub mod os_identity;
+pub mod packages;
 pub mod paths;
 pub mod ports;
 pub mod redact;
@@ -42,6 +43,7 @@ pub use gpu_id::{format_gpu_id_human, report_from_query, scan_gpu_id, GpuIdRepor
 pub use health_scan::{format_health_scan_human, scan_health, HealthScanReport};
 pub use json::{JsonEnvelope, SCHEMA_VERSION};
 pub use os_identity::{format_os_human, read_os_identity, scan_os, OsIdentityReport};
+pub use packages::{format_packages_human, read_package_inventory, scan_packages, PackagesReport};
 pub use paths::DevGuardPaths;
 pub use ports::{
     format_ports_human, report_from_listing, scan_ports, Attribution, ListenSocket, PortsReport,
