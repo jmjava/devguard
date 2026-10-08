@@ -205,7 +205,7 @@ Collect:
 
 Read-only checks, each with source/coverage/confidence:
 - New listening ports and changed services versus a baseline.
-- SSH login history and failed auth attempts where permitted; avoid copying credentials or full journal payloads.
+- `security ssh-auth` reports SSH login history from `last` and failed auth attempts from the journal and the auth log, where each source is readable. It reports counts, timestamps, and source addresses only when those fields are already present. It does not copy credentials, passwords, private keys, or full journal payloads. A missing journal, missing `last`, or unreadable auth log is `unavailable`, and that result is not clean. The command does not use sudo, start or stop sshd, or change sshd config.
 - Firewall status (`ufw`/nftables detection), SSH exposure/configuration where readable.
 - `security firewall` reports `ufw status verbose` and an nftables ruleset listing, plus SSH port, listen address, and authentication settings where `sshd_config` is readable. A missing `ufw`, `nft`, or unreadable sshd config is `unavailable`, and the result is not clean. The command does not run `ufw enable` or `ufw disable`, does not change nftables rules, and does not use sudo. nftables output is detection, not a full audit. Match blocks are counted and not applied.
 - OS security update status using Ubuntu-supported interfaces; never silently install updates. `security updates` reads the update-notifier status file or security-pocket APT list files already on disk. It does not run `apt install`, `apt upgrade`, `apt full-upgrade`, or `apt update`, and it does not use sudo. It does not inventory every installed package. A missing or unreadable security-update source is `unavailable`, and that result is not clean.

@@ -32,6 +32,7 @@ pub mod slm_checklist;
 pub mod slm_export;
 pub mod slm_run;
 pub mod snapshot;
+pub mod ssh_auth;
 pub mod thresholds;
 pub mod units;
 pub mod watch;
@@ -88,6 +89,7 @@ pub use snapshot::{
     CollectorAvailability, CollectorStatus, DiffEntry, SeverityHint, SnapshotDiff, SnapshotPayload,
     SnapshotSummary,
 };
+pub use ssh_auth::{format_ssh_auth_human, report_from_texts, scan_ssh_auth, SshAuthReport};
 pub use thresholds::{evaluate_thresholds, ThresholdSample, ThresholdWarning, RULES_OF_THUMB};
 pub use units::{format_units_human, parse_systemctl_listing, scan_units, UnitRecord, UnitsReport};
 pub use watch::{
