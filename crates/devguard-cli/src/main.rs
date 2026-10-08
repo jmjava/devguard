@@ -5,6 +5,7 @@ mod cmd_slm_energy;
 mod cmd_slm_export;
 mod cmd_slm_host;
 mod cmd_slm_run;
+mod cmd_snapshot;
 mod output;
 mod watch;
 
@@ -107,6 +108,18 @@ enum Commands {
     Dev {
         #[command(subcommand)]
         action: DevCommands,
+    },
+    /// Store and diff a workstation snapshot.
+    ///
+    /// `create` writes one JSON payload from the collectors already on this
+    /// branch. It does not use sudo, install packages, or open a network
+    /// connection. A missing collector stays in the payload as unavailable.
+    /// The snapshot is partial when any collector is unavailable. `--label`
+    /// is an ordinary string. `diff` lists added, removed, and changed entries
+    /// in stable order. Severity is a separate field from the fact.
+    Snapshot {
+        #[command(subcommand)]
+        action: cmd_snapshot::SnapshotCommands,
     },
     /// Configuration management
     Config {
@@ -386,6 +399,12 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             SlmCommands::Checklist(action) => cmd_slm_checklist::run(cli.json, paths, action),
         },
         Commands::Dev { action } => run_dev(cli.json, paths, action),
+        Commands::Snapshot { action } => cmd_snapshot::run(
+            cli.json,
+            &config_hash_allowlist(paths)?,
+            &remote_state_dir(paths)?,
+            action,
+        ),
         Commands::Config {
             action: ConfigCommands::Init { force },
         } => {

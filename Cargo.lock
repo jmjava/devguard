@@ -660,9 +660,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
+ "chrono",
  "clap",
  "crossterm",
  "devguard-core",
+ "devguard-store",
  "predicates",
  "ratatui",
  "serde",
@@ -670,6 +672,7 @@ dependencies = [
  "tempfile",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
