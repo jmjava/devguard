@@ -777,6 +777,118 @@ fn health_sensors_without_hwmon_files_is_unavailable() {
 }
 
 #[test]
+fn health_os_help_documents_hash_and_safety_limits() {
+    devguard()
+        .args(["health", "os", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("boot id"))
+        .stdout(predicate::str::contains("privacy-preserving"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("port"))
+        .stdout(predicate::str::contains("package"));
+}
+
+fn write_proc_fixture(root: &std::path::Path) {
+    let random = root.join("sys/kernel/random");
+    std::fs::create_dir_all(&random).expect("proc dirs");
+    std::fs::write(root.join("sys/kernel/osrelease"), "7.0.0-38-generic\n").expect("osrelease");
+    std::fs::write(
+        root.join("sys/kernel/hostname"),
+        "secret-workstation-name\n",
+    )
+    .expect("hostname");
+    std::fs::write(
+        root.join("sys/kernel/random/boot_id"),
+        "01234567-89ab-cdef-0123-456789abcdef\n",
+    )
+    .expect("boot_id");
+    std::fs::write(root.join("uptime"), "12345.67 890.12\n").expect("uptime");
+}
+
+#[test]
+fn health_os_json_uses_a_proc_fixture_and_hides_the_hostname() {
+    let dir = tempdir().expect("tempdir");
+    write_proc_fixture(dir.path());
+    let output = devguard()
+        .env("DEVGUARD_PROC_ROOT", dir.path())
+        .args(["--json", "health", "os"])
+        .output()
+        .expect("health os");
+    assert_eq!(output.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("secret-workstation-name"), "{stdout}");
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "health os");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["opens_port"], false);
+    assert_eq!(value["data"]["collects_packages"], false);
+    assert_eq!(value["data"]["kernel_release"]["value"], "7.0.0-38-generic");
+    assert_eq!(
+        value["data"]["boot_id"]["value"],
+        "01234567-89ab-cdef-0123-456789abcdef"
+    );
+    assert_eq!(value["data"]["uptime_seconds"]["value"], 12345.67);
+    assert_eq!(
+        value["data"]["hostname_hash"]["value"],
+        "hn-9e2595de8ac1de6d"
+    );
+    assert!(value["data"].get("hostname").is_none());
+}
+
+#[test]
+fn health_os_missing_proc_source_is_unavailable() {
+    let dir = tempdir().expect("tempdir");
+    write_proc_fixture(dir.path());
+    std::fs::remove_file(dir.path().join("uptime")).expect("remove uptime");
+    let output = devguard()
+        .env("DEVGUARD_PROC_ROOT", dir.path())
+        .args(["--json", "health", "os"])
+        .output()
+        .expect("health os");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("secret-workstation-name"), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "health os");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["uptime_seconds"]["status"], "unavailable");
+    assert_eq!(value["data"]["kernel_release"]["value"], "7.0.0-38-generic");
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap_or("").contains("uptime")));
+}
+
+#[test]
+fn health_os_human_states_the_safety_limits() {
+    let dir = tempdir().expect("tempdir");
+    write_proc_fixture(dir.path());
+    let output = devguard()
+        .env("DEVGUARD_PROC_ROOT", dir.path())
+        .args(["health", "os"])
+        .output()
+        .expect("health os");
+    assert_eq!(output.status.code(), Some(0));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard health os"));
+    assert!(stdout.contains("kernel: 7.0.0-38-generic"));
+    assert!(stdout.contains("hostname hash: hn-9e2595de8ac1de6d"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("opens a port: no"));
+    assert!(stdout.contains("collects packages: no"));
+    assert!(stdout.contains("clean: yes"));
+    assert!(!stdout.contains("secret-workstation-name"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
 fn health_fan_help_remains() {
     devguard()
         .args(["health", "fan", "--help"])

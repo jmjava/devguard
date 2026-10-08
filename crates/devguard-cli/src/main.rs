@@ -20,6 +20,7 @@ use devguard_core::fan::{format_fan_human, scan_fan};
 use devguard_core::gpu::{format_gpu_human, scan_gpu};
 use devguard_core::health_scan::{format_health_scan_human, scan_health};
 use devguard_core::json::JsonEnvelope;
+use devguard_core::os_identity::{format_os_human, scan_os};
 use devguard_core::ports::{format_ports_human, scan_ports};
 use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
@@ -130,6 +131,12 @@ enum HealthCommands {
     /// If `sensors` is missing and no hwmon file is readable, the reading is
     /// unavailable and not clean.
     Sensors,
+    /// Kernel release, boot id, and uptime from `/proc`.
+    ///
+    /// The hostname is stored only as a privacy-preserving hash, never the raw
+    /// hostname. A missing `/proc` source is unavailable, and that result is
+    /// not clean. Does not use sudo, open a port, or collect package lists.
+    Os,
     /// Find a process at 6+ cores for 10 minutes, or holding 12+ GiB RSS.
     ///
     /// Samples CPU for one second. Prints a stop hint and does not send a signal.
@@ -461,6 +468,21 @@ fn run_health(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_sensors_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        HealthCommands::Os => {
+            let report = scan_os();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("health os", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("health os", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_os_human(&report));
             }
             Ok(report.exit_code())
         }
