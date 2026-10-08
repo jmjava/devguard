@@ -552,3 +552,59 @@ fn slm_energy_rejects_a_malformed_sample() {
         .code(64)
         .stderr(predicate::str::contains("<watts>@<rfc3339>"));
 }
+
+#[test]
+fn slm_host_help_says_a_missing_source_is_unavailable() {
+    devguard()
+        .args(["slm", "host", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"));
+}
+
+#[test]
+fn slm_host_json_reports_fields_and_never_says_healthy() {
+    let output = devguard()
+        .args(["--json", "slm", "host"])
+        .output()
+        .expect("slm host");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "slm host");
+    assert_eq!(value["ok"], true);
+    let stamp = value["data"]["observed_at"].as_str().expect("timestamp");
+    assert!(stamp.contains('T'), "{stamp}");
+    for key in [
+        "cpu_percent",
+        "memory_used_bytes",
+        "memory_total_bytes",
+        "swap_used_bytes",
+        "disk_free_bytes",
+    ] {
+        let status = value["data"][key]["status"].as_str();
+        assert!(
+            status == Some("available") || status == Some("unavailable"),
+            "{key} {stdout}"
+        );
+    }
+    let clean = value["data"]["clean"].as_bool().expect("clean");
+    if clean {
+        assert_eq!(output.status.code(), Some(0), "{stdout}");
+    } else {
+        assert_eq!(output.status.code(), Some(3), "{stdout}");
+    }
+}
+
+#[test]
+fn slm_host_human_prints_the_sample_header() {
+    let output = devguard().args(["slm", "host"]).output().expect("slm host");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard SLM host"));
+    assert!(stdout.contains("observed_at:"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+    let code = output.status.code();
+    assert!(code == Some(0) || code == Some(3), "{stdout}");
+}

@@ -1,6 +1,7 @@
 //! DevGuard CLI entrypoint.
 
 mod cmd_slm_energy;
+mod cmd_slm_host;
 mod cmd_slm_run;
 mod output;
 mod watch;
@@ -71,7 +72,8 @@ enum Commands {
         #[command(subcommand)]
         action: RemoteCommands,
     },
-    /// SLM energy from supplied samples, and run brackets. Does not call Ollama or bind a port.
+    /// SLM host sample, energy from supplied samples, and run brackets.
+    /// Host reads /proc. Energy does not call nvidia-smi. Run does not call Ollama or bind a port.
     Slm {
         #[command(subcommand)]
         action: SlmCommands,
