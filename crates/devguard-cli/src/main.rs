@@ -6,6 +6,7 @@ mod cmd_slm_export;
 mod cmd_slm_host;
 mod cmd_slm_run;
 mod cmd_snapshot;
+mod cmd_status;
 mod output;
 mod watch;
 
@@ -84,7 +85,12 @@ struct Cli {
 enum Commands {
     /// Check prerequisites, tool versions, permissions, and SLM/GPU coverage
     Doctor,
-    /// Show summary of most recent scans (M0: empty until collectors land)
+    /// Summary of the newest stored snapshot, with its timestamp.
+    ///
+    /// Reads `devguard.db` under the state directory. Reports the snapshot id,
+    /// label, created_at, and whether coverage was partial. Does not rescan
+    /// the host, use sudo, or open a network connection. No stored snapshot
+    /// exits partial.
     Status,
     /// Read-only health checks. Does not use sudo, send signals, load modules, write BIOS, or change fan curves.
     Health {
@@ -394,33 +400,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
                 Ok(ExitCode::Partial)
             }
         }
-        Commands::Status => {
-            #[derive(serde::Serialize)]
-            struct StatusData {
-                message: String,
-                scans: Vec<String>,
-                config_present: bool,
-            }
-            let data = StatusData {
-                message: "No scans recorded yet. Snapshot/health/gpu collectors arrive in later milestones.".into(),
-                scans: Vec::new(),
-                config_present: paths.config_file.exists(),
-            };
-            if cli.json {
-                emit_json(&JsonEnvelope::success("status", &data))?;
-            } else {
-                emit_human(&format!(
-                    "DevGuard status\n  config: {}\n  {}\n",
-                    if data.config_present {
-                        paths.config_file.display().to_string()
-                    } else {
-                        "not initialized (run `devguard config init`)".into()
-                    },
-                    data.message
-                ));
-            }
-            Ok(ExitCode::Success)
-        }
+        Commands::Status => cmd_status::run(cli.json, &remote_state_dir(paths)?),
         Commands::Gpu {
             action: GpuCommands::Scan,
         } => {

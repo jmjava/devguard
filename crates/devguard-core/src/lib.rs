@@ -85,9 +85,10 @@ pub use slm_checklist::{format_paper_checklist, paper_checklist, PaperChecklist}
 pub use slm_export::{export_paper_table, paper_row, PaperRow, WrittenExport, PAPER_COLUMNS};
 pub use snapshot::{
     collect_snapshot, collector_statuses, diff_payloads, format_create_human, format_diff_human,
-    format_list_human, parse_payload, snapshot_warnings, summary_from_stored,
-    CollectorAvailability, CollectorStatus, DiffEntry, SeverityHint, SnapshotDiff, SnapshotPayload,
-    SnapshotSummary,
+    format_list_human, format_status_human, parse_payload, snapshot_warnings, status_exit,
+    status_from_stored, status_warnings, summary_from_stored, CollectorAvailability,
+    CollectorStatus, DiffEntry, SeverityHint, SnapshotDiff, SnapshotPayload, SnapshotSummary,
+    StatusSnapshot,
 };
 pub use ssh_auth::{format_ssh_auth_human, report_from_texts, scan_ssh_auth, SshAuthReport};
 pub use thresholds::{evaluate_thresholds, ThresholdSample, ThresholdWarning, RULES_OF_THUMB};
