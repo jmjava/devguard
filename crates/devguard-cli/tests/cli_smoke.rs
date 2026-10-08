@@ -784,6 +784,83 @@ fn health_fan_help_remains() {
 }
 
 #[test]
+fn health_ports_help_documents_attribution_and_limits() {
+    devguard()
+        .args(["health", "ports", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ss -lntup"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("attribution missing"))
+        .stdout(predicate::str::contains("closed port"))
+        .stdout(predicate::str::contains("command arguments"));
+}
+
+#[test]
+fn health_ports_json_parses_a_fixture_listing() {
+    let dir = tempdir().unwrap();
+    let program = dir.path().join("ss");
+    std::fs::write(
+        &program,
+        "#!/bin/sh\ncat <<'EOF'\ntcp LISTEN 0 128 127.0.0.1:9 0.0.0.0:* users:((\"fixture\",pid=4,fd=1))\ntcp LISTEN 0 128 127.0.0.1:10 0.0.0.0:*\nEOF\n",
+    )
+    .unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    let mut perms = std::fs::metadata(&program).unwrap().permissions();
+    perms.set_mode(0o755);
+    std::fs::set_permissions(&program, perms).unwrap();
+
+    let output = devguard()
+        .env("DEVGUARD_SS_BIN", &program)
+        .args(["--json", "health", "ports"])
+        .output()
+        .expect("health ports");
+    assert_eq!(output.status.code(), Some(3), "{:?}", output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("pid="), "{stdout}");
+    assert!(!stdout.contains("http.server"), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "health ports");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["opens_port"], false);
+    assert_eq!(value["data"]["scans_remote"], false);
+    assert_eq!(value["data"]["collects_arguments"], false);
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["ss"]["status"], "available");
+    let sockets = value["data"]["sockets"].as_array().expect("sockets");
+    assert_eq!(sockets.len(), 2);
+    assert_eq!(sockets[0]["protocol"], "tcp");
+    assert_eq!(sockets[0]["address"], "127.0.0.1");
+    assert_eq!(sockets[0]["port"], 9);
+    assert_eq!(sockets[0]["process"], "fixture");
+    assert_eq!(sockets[0]["attribution"], "present");
+    assert_eq!(sockets[1]["port"], 10);
+    assert_eq!(sockets[1]["attribution"], "missing");
+    assert!(sockets[1]["process"].is_null());
+    assert!(sockets[1].get("cmdline").is_none());
+    assert!(sockets[1].get("args").is_none());
+}
+
+#[test]
+fn health_ports_missing_ss_is_unavailable_not_clean() {
+    let output = devguard()
+        .env("DEVGUARD_SS_BIN", "/no/such/devguard-ss")
+        .args(["--json", "health", "ports"])
+        .output()
+        .expect("health ports");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "health ports");
+    assert_eq!(value["data"]["ss"]["status"], "unavailable");
+    assert_eq!(value["data"]["clean"], false);
+    assert!(value["data"]["sockets"].as_array().unwrap().is_empty());
+    assert_eq!(value["data"]["opens_port"], false);
+    assert_eq!(value["data"]["scans_remote"], false);
+}
+
+#[test]
 fn slm_host_human_prints_the_sample_header() {
     let output = devguard().args(["slm", "host"]).output().expect("slm host");
     let stdout = String::from_utf8_lossy(&output.stdout);

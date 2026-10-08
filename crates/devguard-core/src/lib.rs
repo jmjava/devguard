@@ -12,6 +12,7 @@ pub mod health_scan;
 pub mod host_sample;
 pub mod json;
 pub mod paths;
+pub mod ports;
 pub mod redact;
 pub mod remote;
 pub mod runaway;
@@ -32,6 +33,9 @@ pub use gpu::{format_gpu_human, scan_gpu, GpuScanReport};
 pub use health_scan::{format_health_scan_human, scan_health, HealthScanReport};
 pub use json::{JsonEnvelope, SCHEMA_VERSION};
 pub use paths::DevGuardPaths;
+pub use ports::{
+    format_ports_human, report_from_listing, scan_ports, Attribution, ListenSocket, PortsReport,
+};
 pub use redact::{redact_env_value, redact_text, SENSITIVE_ENV_HINTS};
 pub use remote::{
     collect_status, fetch_ollama_tags, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
