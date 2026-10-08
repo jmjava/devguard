@@ -1,0 +1,3 @@
+# rust-toolchain.toml is 1.85. Prefer dependency versions that rustc can compile.
+[resolver]
+incompatible-rust-versions = "fallback"
