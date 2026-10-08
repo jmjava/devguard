@@ -1,0 +1,12 @@
+Netid State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+tcp LISTEN 0 128 0.0.0.0:22 0.0.0.0:* users:(("sshd",pid=456,fd=3))
+tcp LISTEN 0 128 127.0.0.1:631 0.0.0.0:*
+tcp LISTEN 0 128 [::]:443 [::]:* users:(("nginx",pid=1,fd=6),("nginx",pid=2,fd=6))
+tcp LISTEN 0 128 [::1]:631 [::]:* users:(("cupsd",pid=4,fd=7))
+udp UNCONN 0 0 0.0.0.0:68 0.0.0.0:* users:(("systemd-network",pid=8,fd=10))
+udp UNCONN 0 0 127.0.0.53%lo:53 0.0.0.0:* users:(("systemd-resolve",pid=5,fd=12))
+tcp LISTEN 0 5 *:9090 *:*
+tcp LISTEN 0 128 10.0.0.5:22 0.0.0.0:*users:(("sshd",pid=3,fd=3))
+tcp LISTEN 0 128 127.0.0.1:9000 0.0.0.0:* users:(("python -m http.server --bind 127.0.0.1",pid=9,fd=3))
+tcp ESTAB 0 0 10.1.2.3:40000 203.0.113.10:443 users:(("curl",pid=1,fd=1))
+udp UNCONN 0 0 239.255.255.250:3702 0.0.0.0:* users:(("wsdd",pid=7,fd=20))

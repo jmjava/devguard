@@ -18,6 +18,7 @@ use devguard_core::fan::{format_fan_human, scan_fan};
 use devguard_core::gpu::{format_gpu_human, scan_gpu};
 use devguard_core::health_scan::{format_health_scan_human, scan_health};
 use devguard_core::json::JsonEnvelope;
+use devguard_core::ports::{format_ports_human, scan_ports};
 use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
 };
@@ -122,6 +123,12 @@ enum HealthCommands {
     ///
     /// Samples CPU for one second. Prints a stop hint and does not send a signal.
     Runaway,
+    /// Local listening sockets from `ss -lntup`. Process names only.
+    ///
+    /// Does not open a port, scan a remote host, or collect command arguments.
+    /// A missing `ss` is unavailable and the result is not clean. A listening
+    /// row with no process name is attribution missing, not a closed port.
+    Ports,
     /// Refresh the fan diagnostic in a terminal. Exits on Ctrl+C.
     ///
     /// The interval is bounded to 1s..300s (`5s`, `1m`, `1000ms`). This command
@@ -427,6 +434,21 @@ fn run_health(
             } else {
                 Ok(ExitCode::Success)
             }
+        }
+        HealthCommands::Ports => {
+            let report = scan_ports();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("health ports", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("health ports", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_ports_human(&report));
+            }
+            Ok(report.exit_code())
         }
         HealthCommands::Watch { interval } => {
             let interval = parse_watch_interval(&interval)?;

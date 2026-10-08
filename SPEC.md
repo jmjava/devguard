@@ -186,6 +186,7 @@ Collect:
 - `health scan` is single-shot. `health watch` refreshes the fan diagnostic in a ratatui terminal on a bounded interval (1s through 300s), exits on Ctrl+C, and does not start a background service or signal processes. Missing `sensors` or `nvidia-smi` stays unavailable.
 - `health fan` prints observations and hypotheses for fan noise. It reads process names only, never command arguments. Missing `sensors` or `nvidia-smi`, and a missing chassis tachometer, are `unavailable` and the result is not clean. The command does not use sudo, load modules, write BIOS, or change fan curves.
 - `gpu scan` reads `nvidia-smi` once. It prints a hash of each GPU UUID and does not print the raw UUID. Missing `nvidia-smi` or a missing field is `unavailable`, and the result is not clean. Multiple GPUs stay in nvidia-smi index order. The call times out and keeps a bounded capture. It does not use sudo or load kernel modules. It does not collect process arguments.
+- `health ports` reads local `ss -lntup` once and reports protocol, address, port, and process name. A missing `ss` is `unavailable`, and the result is not clean. A listening row with no process name is attribution missing, which is distinct from a closed port. The command does not open a port, scan a remote host, or collect command arguments.
 - Include diagnostic advice only when backed by collected metrics; avoid false precision.
 
 ### C. Security Sentinel
