@@ -25,6 +25,7 @@ pub mod ports;
 pub mod redact;
 pub mod remote;
 pub mod runaway;
+pub mod security_drift;
 pub mod security_scan;
 pub mod security_updates;
 pub mod sensors;
@@ -71,6 +72,10 @@ pub use remote::{
 };
 pub use runaway::{
     format_runaway_human, scan_runaways, RunawayProcess, RunawayReport, RunawayThresholds,
+};
+pub use security_drift::{
+    diff_stored_payloads, diff_stored_payloads_with_rules, format_security_drift_human,
+    DriftFinding, DriftRules, SecurityDriftReport,
 };
 pub use security_scan::{
     findings_from, format_security_scan_human, scan_security, Finding, FindingSeverity,
