@@ -2385,6 +2385,8 @@ fn security_firewall_unreadable_sshd_is_not_clean() {
     assert!(stdout.contains("clean: no"));
     assert!(stdout.contains("unreadable"));
     assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
 fn home_devguard_db() -> PathBuf {
     PathBuf::from(std::env::var("HOME").unwrap_or_default())
         .join(".local/state/devguard/devguard.db")
