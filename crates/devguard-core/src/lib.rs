@@ -11,6 +11,7 @@ pub mod json;
 pub mod paths;
 pub mod redact;
 pub mod remote;
+pub mod runaway;
 pub mod slm;
 pub mod watch;
 
@@ -27,6 +28,9 @@ pub use redact::{redact_env_value, redact_text, SENSITIVE_ENV_HINTS};
 pub use remote::{
     collect_status, fetch_ollama_tags, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
     RemoteSample, RemoteStatusReport, RemoteTarget, TunnelReport, ALLOWLIST,
+};
+pub use runaway::{
+    format_runaway_human, scan_runaways, RunawayProcess, RunawayReport, RunawayThresholds,
 };
 pub use slm::{
     academic_metric_checklist, EnergyMetrics, ExperimentMeta, GpuSample, HostSample,
