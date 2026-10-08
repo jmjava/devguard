@@ -15,6 +15,7 @@ use devguard_core::doctor::run_doctor;
 use devguard_core::exit::ExitCode;
 use devguard_core::fan::{format_fan_human, scan_fan};
 use devguard_core::gpu::{format_gpu_human, scan_gpu};
+use devguard_core::health_scan::{format_health_scan_human, scan_health};
 use devguard_core::json::JsonEnvelope;
 use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
@@ -57,7 +58,7 @@ enum Commands {
     Doctor,
     /// Show summary of most recent scans (M0: empty until collectors land)
     Status,
-    /// Read-only health checks. Does not use sudo, load modules, write BIOS, or change fan curves.
+    /// Read-only health checks. Does not use sudo, send signals, load modules, write BIOS, or change fan curves.
     Health {
         #[command(subcommand)]
         action: HealthCommands,
@@ -95,6 +96,13 @@ enum SlmCommands {
 
 #[derive(Debug, Subcommand)]
 enum HealthCommands {
+    /// CPU count, memory, swap, disk free, uptime, and busiest process names.
+    ///
+    /// Reads `/proc/<pid>/stat` for the comm name only and does not collect
+    /// command arguments. Does not use sudo, send a signal, load a kernel
+    /// module, or write BIOS. A missing `/proc` source is unavailable, and
+    /// that result is not clean.
+    Scan,
     /// Observations and hypotheses for fan noise. Process names only.
     ///
     /// Does not use sudo, write a fan curve, load a kernel module, or change BIOS.
@@ -351,6 +359,21 @@ fn run_health(
     action: HealthCommands,
 ) -> Result<ExitCode, devguard_core::DevGuardError> {
     match action {
+        HealthCommands::Scan => {
+            let report = scan_health();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("health scan", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("health scan", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_health_scan_human(&report));
+            }
+            Ok(report.exit_code())
+        }
         HealthCommands::Fan => {
             let report = scan_fan();
             let warnings = report.warnings();

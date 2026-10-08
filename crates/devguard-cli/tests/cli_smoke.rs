@@ -117,6 +117,95 @@ fn health_runaway_json_is_one_document() {
 }
 
 #[test]
+fn health_scan_help_documents_unavailable_sources() {
+    devguard()
+        .args(["health", "scan", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("signal"))
+        .stdout(predicate::str::contains("BIOS"))
+        .stdout(predicate::str::contains("arguments"));
+}
+
+#[test]
+fn health_scan_json_reports_names_only() {
+    let output = devguard()
+        .args(["--json", "health", "scan"])
+        .output()
+        .expect("health scan");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "health scan");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["sends_signals"], false);
+    assert_eq!(value["data"]["loads_modules"], false);
+    assert_eq!(value["data"]["writes_bios"], false);
+    assert!(value["data"].get("cmdline").is_none());
+    assert!(value["data"].get("args").is_none());
+    assert!(value["data"]["processes"].get("cmdline").is_none());
+    assert!(value["data"]["processes"].get("args").is_none());
+    let names = value["data"]["processes"]["names"]
+        .as_array()
+        .expect("names");
+    for name in names {
+        assert!(name.is_string(), "{stdout}");
+    }
+    for key in [
+        "cpu_count",
+        "memory_used_bytes",
+        "memory_total_bytes",
+        "swap_used_bytes",
+        "disk_free_bytes",
+        "uptime_seconds",
+    ] {
+        let status = value["data"][key]["status"].as_str();
+        assert!(
+            status == Some("available") || status == Some("unavailable"),
+            "{key} {stdout}"
+        );
+    }
+    let processes = value["data"]["processes"]["status"].as_str();
+    assert!(processes == Some("available") || processes == Some("unavailable"));
+    let clean = value["data"]["clean"].as_bool().expect("clean");
+    let incomplete = !clean
+        || value["data"]["cpu_count"]["status"] == "unavailable"
+        || value["data"]["memory_used_bytes"]["status"] == "unavailable"
+        || value["data"]["memory_total_bytes"]["status"] == "unavailable"
+        || value["data"]["swap_used_bytes"]["status"] == "unavailable"
+        || value["data"]["disk_free_bytes"]["status"] == "unavailable"
+        || value["data"]["uptime_seconds"]["status"] == "unavailable"
+        || processes == Some("unavailable");
+    if incomplete {
+        assert!(!clean);
+        assert_eq!(output.status.code(), Some(3), "{stdout}");
+    } else {
+        assert_eq!(output.status.code(), Some(0), "{stdout}");
+    }
+}
+
+#[test]
+fn health_scan_human_states_the_safety_limits() {
+    let output = devguard()
+        .args(["health", "scan"])
+        .output()
+        .expect("health scan");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard health scan"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("sends signals: no"));
+    assert!(stdout.contains("loads modules: no"));
+    assert!(stdout.contains("writes BIOS: no"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+    let code = output.status.code();
+    assert!(code == Some(0) || code == Some(3), "{stdout}");
+}
+
+#[test]
 fn health_help_documents_the_fan_command() {
     devguard()
         .args(["health", "--help"])
