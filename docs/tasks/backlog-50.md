@@ -31,7 +31,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 
 - [x] #devguard #slm Literature map + `SlmRunRecord` schema/types (`docs/slm-research-metrics.md`)
 - [ ] #devguard #slm NVIDIA collector: util %, VRAM used/total, temp °C, power W, clocks, driver
-- [ ] #devguard #slm Host companion sample: CPU %, RAM/swap, disk free (bytes; RFC3339)
+- [x] #devguard #slm Host companion sample: CPU %, RAM/swap, disk free (bytes; RFC3339)
 - [ ] #devguard #slm `devguard slm run begin|end` — bracket runs; interval samples; merge harness annotations
 - [ ] #devguard #slm Ingest harness JSON: TTFT/TPOT p50/p99, tokens, batch, ctx, quantization, backend
 - [ ] #devguard #slm Derive GPU-rail energy (J≈P̄·Δt, J/token, tokens/J, tok/W); label `measurement_plane`

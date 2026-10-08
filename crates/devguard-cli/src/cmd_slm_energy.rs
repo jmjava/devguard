@@ -26,11 +26,18 @@ pub enum SlmCommands {
         #[arg(long)]
         tokens: Option<u64>,
     },
+    /// One-shot host companion sample from /proc.
+    ///
+    /// Reports CPU percent, RAM used and total, swap used, and disk free in
+    /// bytes. The timestamp is RFC3339. A missing source is unavailable, never
+    /// a healthy result. Does not use sudo.
+    Host,
 }
 
 pub fn run(json: bool, action: SlmCommands) -> Result<ExitCode, DevGuardError> {
     match action {
         SlmCommands::Energy { samples, tokens } => run_energy(json, &samples, tokens),
+        SlmCommands::Host => crate::cmd_slm_host::run(json),
     }
 }
 
