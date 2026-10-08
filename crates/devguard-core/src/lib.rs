@@ -24,6 +24,7 @@ pub mod slm_checklist;
 pub mod slm_export;
 pub mod slm_run;
 pub mod thresholds;
+pub mod units;
 pub mod watch;
 
 pub use collector::{Collection, CollectionStatus, Collector};
@@ -58,6 +59,7 @@ pub use slm::{
 pub use slm_checklist::{format_paper_checklist, paper_checklist, PaperChecklist};
 pub use slm_export::{export_paper_table, paper_row, PaperRow, WrittenExport, PAPER_COLUMNS};
 pub use thresholds::{evaluate_thresholds, ThresholdSample, ThresholdWarning, RULES_OF_THUMB};
+pub use units::{format_units_human, parse_systemctl_listing, scan_units, UnitRecord, UnitsReport};
 pub use watch::{
     format_interval, parse_watch_interval, refresh, render_watch, WatchSample, MAX_WATCH_INTERVAL,
     MIN_WATCH_INTERVAL,

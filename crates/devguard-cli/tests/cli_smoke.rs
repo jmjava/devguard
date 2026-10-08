@@ -4,6 +4,7 @@ use assert_cmd::assert::OutputAssertExt;
 use assert_cmd::cargo::CommandCargoExt;
 use predicates::prelude::*;
 use std::os::unix::fs::PermissionsExt;
+use std::path::PathBuf;
 use std::process::Command;
 use tempfile::tempdir;
 
@@ -1290,6 +1291,69 @@ fn slm_checklist_prints_a_fixture_run_as_text_and_json() {
 }
 
 #[test]
+fn health_units_help_documents_a_read_only_listing() {
+    devguard()
+        .args(["health", "units", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("enabled"))
+        .stdout(predicate::str::contains("active"))
+        .stdout(predicate::str::contains("failed"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("start"))
+        .stdout(predicate::str::contains("stop"))
+        .stdout(predicate::str::contains("enable"))
+        .stdout(predicate::str::contains("disable"));
+}
+
+#[test]
+fn health_units_json_parses_a_fixture_listing() {
+    let listing = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../devguard-core/fixtures/systemctl-show.txt");
+    let missing = tempdir().expect("tempdir");
+    let output = devguard()
+        .env("DEVGUARD_SYSTEMCTL_LISTING", &listing)
+        .env(
+            "DEVGUARD_SYSTEMCTL_BIN",
+            missing.path().join("missing-systemctl"),
+        )
+        .env_remove("PATH")
+        .args(["--json", "health", "units"])
+        .output()
+        .expect("health units");
+    assert_eq!(output.status.code(), Some(0));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "health units");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["status"], "available");
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["starts_units"], false);
+    assert_eq!(value["data"]["stops_units"], false);
+    assert_eq!(value["data"]["enables_units"], false);
+    assert_eq!(value["data"]["disables_units"], false);
+    let units = value["data"]["units"].as_array().expect("units");
+    let fixture = units
+        .iter()
+        .find(|unit| unit["name"] == "devguard-fixture.service")
+        .expect("fixture unit");
+    assert_eq!(fixture["enabled"], "static");
+    assert_eq!(fixture["active"], "inactive");
+    assert_eq!(fixture["failed"], false);
+    let apport = units
+        .iter()
+        .find(|unit| unit["name"] == "apport.service")
+        .expect("apport");
+    assert_eq!(apport["enabled"], "enabled");
+    assert_eq!(apport["active"], "failed");
+    assert_eq!(apport["failed"], true);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
 fn slm_checklist_missing_field_is_unavailable() {
     let dir = tempdir().expect("temp state");
     let run_dir = dir.path().join("slm-runs");
@@ -1403,3 +1467,52 @@ const FIXTURE_RUN: &str = r#"{
     ]
   }
 }"#;
+
+#[test]
+fn health_units_unreadable_listing_is_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    let listing = dir.path().join("listing.txt");
+    std::fs::write(&listing, "UNIT LOAD ACTIVE SUB DESCRIPTION\n").unwrap();
+    let output = devguard()
+        .env("DEVGUARD_SYSTEMCTL_LISTING", &listing)
+        .env(
+            "DEVGUARD_SYSTEMCTL_BIN",
+            dir.path().join("missing-systemctl"),
+        )
+        .args(["--json", "health", "units"])
+        .output()
+        .expect("health units");
+    assert_eq!(output.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["command"], "health units");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["status"], "unavailable");
+    assert!(value["data"]["units"].as_array().unwrap().is_empty());
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap_or("").contains("unreadable")));
+}
+
+#[test]
+fn health_units_missing_systemctl_is_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    let output = devguard()
+        .env_remove("DEVGUARD_SYSTEMCTL_LISTING")
+        .env(
+            "DEVGUARD_SYSTEMCTL_BIN",
+            dir.path().join("missing-systemctl"),
+        )
+        .args(["health", "units"])
+        .output()
+        .expect("health units");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard health units"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("starts units: no"));
+    assert!(stdout.contains("clean: no"));
+    assert!(stdout.contains("not on PATH"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
