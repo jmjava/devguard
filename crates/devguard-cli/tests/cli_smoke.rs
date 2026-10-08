@@ -324,6 +324,113 @@ fn remote_status_is_off_without_a_target() {
 }
 
 #[test]
+fn slm_run_help_states_it_does_not_call_ollama_or_bind_a_port() {
+    devguard()
+        .args(["slm", "run", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("begin"))
+        .stdout(predicate::str::contains("end"))
+        .stdout(predicate::str::contains("Ollama"))
+        .stdout(predicate::str::contains("port"));
+}
+
+#[test]
+fn slm_run_begin_end_uses_a_temp_state_dir_and_does_not_invent_metrics() {
+    let dir = tempdir().unwrap();
+    let begin = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "slm", "run", "begin", "--label", "gsm8k"])
+        .output()
+        .expect("begin");
+    assert!(
+        begin.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&begin.stderr)
+    );
+    let opened: serde_json::Value = serde_json::from_slice(&begin.stdout).expect("begin json");
+    assert_eq!(opened["command"], "slm run begin");
+    assert_eq!(opened["ok"], true);
+    assert_eq!(opened["data"]["calls_ollama"], false);
+    assert_eq!(opened["data"]["binds_port"], false);
+    assert!(opened["data"].get("latency").is_none());
+    assert!(opened["data"].get("quality").is_none());
+    let run_id = opened["data"]["run_id"].as_str().expect("run id");
+    let record_path = dir.path().join("slm-runs").join(format!("{run_id}.json"));
+    assert!(record_path.is_file());
+
+    let end = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "slm", "run", "end", "--id", run_id])
+        .output()
+        .expect("end");
+    assert!(
+        end.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&end.stderr)
+    );
+    let closed: serde_json::Value = serde_json::from_slice(&end.stdout).expect("end json");
+    assert_eq!(closed["command"], "slm run end");
+    assert!(closed["data"]["duration_s"].as_f64().unwrap() >= 0.0);
+    assert!(closed["data"]["ended_at"].is_string());
+    assert!(closed["data"].get("latency").is_none());
+    assert!(closed["data"].get("quality").is_none());
+    assert_eq!(closed["data"]["calls_ollama"], false);
+    assert_eq!(closed["data"]["binds_port"], false);
+}
+
+#[test]
+fn slm_run_end_stores_harness_ttft_and_tokens() {
+    let dir = tempdir().unwrap();
+    let harness = dir.path().join("harness.json");
+    std::fs::write(
+        &harness,
+        r#"{"ttft_ms": 42.0, "ttft_p99_ms": 80.0, "tokens": 16, "backend": "llama.cpp"}"#,
+    )
+    .unwrap();
+    let begin = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "slm", "run", "begin"])
+        .output()
+        .expect("begin");
+    assert!(begin.status.success());
+    let opened: serde_json::Value = serde_json::from_slice(&begin.stdout).unwrap();
+    let run_id = opened["data"]["run_id"].as_str().unwrap();
+
+    let end = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args([
+            "--json",
+            "slm",
+            "run",
+            "end",
+            "--id",
+            run_id,
+            "--harness",
+            harness.to_str().unwrap(),
+        ])
+        .output()
+        .expect("end");
+    assert!(
+        end.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&end.stderr)
+    );
+    let closed: serde_json::Value = serde_json::from_slice(&end.stdout).unwrap();
+    assert_eq!(closed["data"]["latency"]["ttft_ms"], 42.0);
+    assert_eq!(closed["data"]["latency"]["ttft_p99_ms"], 80.0);
+    assert!(
+        closed["data"]["latency"].get("tpot_ms").is_none()
+            || closed["data"]["latency"]["tpot_ms"].is_null()
+    );
+    assert_eq!(closed["data"]["experiment"]["output_tokens"], 16);
+    assert_eq!(closed["data"]["experiment"]["backend"], "llama.cpp");
+    assert!(closed["data"].get("quality").is_none());
+    assert_eq!(closed["data"]["calls_ollama"], false);
+    assert_eq!(closed["data"]["binds_port"], false);
+}
+
+#[test]
 fn remote_status_reports_host_down_without_secrets() {
     let dir = tempdir().unwrap();
     let config = dir.path().join("config.toml");
