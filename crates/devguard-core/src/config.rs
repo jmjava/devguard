@@ -140,18 +140,11 @@ impl Default for DatabaseConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SnapshotConfig {
+    /// Omitted key: empty allowlist. That hashes nothing.
     #[serde(default)]
     pub config_hash_allowlist: Vec<String>,
-}
-
-impl Default for SnapshotConfig {
-    fn default() -> Self {
-        Self {
-            config_hash_allowlist: vec!["~/.config/devguard/config.toml".into()],
-        }
-    }
 }
 
 /// Health and GPU threshold hints (rules of thumb, not hardware guarantees).
@@ -824,5 +817,14 @@ mod tests {
         let toml = include_str!("../../../examples/config.example.toml");
         let cfg = Config::parse_toml(toml).expect("parse example");
         cfg.validate().expect("validate example");
+    }
+
+    #[test]
+    fn omitted_config_hash_allowlist_is_empty_and_parses() {
+        let bare = Config::parse_toml("schema_version = 1\n").expect("parse");
+        assert!(bare.snapshot.config_hash_allowlist.is_empty());
+        let section = Config::parse_toml("schema_version = 1\n\n[snapshot]\n").expect("parse");
+        assert!(section.snapshot.config_hash_allowlist.is_empty());
+        assert!(Config::default().snapshot.config_hash_allowlist.is_empty());
     }
 }

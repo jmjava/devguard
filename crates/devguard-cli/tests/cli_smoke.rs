@@ -1180,6 +1180,104 @@ fn dev_env_missing_tool_on_fixture_path_is_not_clean() {
 }
 
 #[test]
+fn health_files_help_documents_the_allowlist() {
+    devguard()
+        .args(["health", "files", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("config_hash_allowlist"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("SHA-256"))
+        .stdout(predicate::str::contains("not stored"));
+}
+
+#[test]
+fn health_files_json_hashes_fixtures_and_omits_token_text() {
+    let dir = tempdir().unwrap();
+    let plain = dir.path().join("plain.toml");
+    let secret = dir.path().join("secret.env");
+    let token = "token=ghp_SuperSecretTokenValue";
+    std::fs::write(&plain, b"listen = 1\n").unwrap();
+    std::fs::write(&secret, token.as_bytes()).unwrap();
+    let config = dir.path().join("config.toml");
+    std::fs::write(
+        &config,
+        format!(
+            "schema_version = 1\n\n[snapshot]\nconfig_hash_allowlist = [{plain:?}, {secret:?}]\n",
+            plain = plain.display().to_string(),
+            secret = secret.display().to_string(),
+        ),
+    )
+    .unwrap();
+
+    let output = devguard()
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "health",
+            "files",
+        ])
+        .output()
+        .expect("health files");
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains(token), "{stdout}");
+    assert!(!stdout.contains("SuperSecret"), "{stdout}");
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "health files");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["persists_contents"], false);
+    assert_eq!(value["data"]["prints_contents"], false);
+    assert_eq!(value["data"]["hash_algorithm"], "sha256");
+    let files = value["data"]["files"].as_array().expect("files");
+    assert_eq!(files.len(), 2);
+    assert_eq!(files[0]["status"], "available");
+    assert_eq!(files[0]["path"], plain.display().to_string());
+    assert_eq!(files[0]["size_bytes"], 11);
+    assert!(files[0]["mtime_unix"].as_i64().unwrap() > 0);
+    assert_eq!(files[0]["hash"].as_str().unwrap().len(), 64);
+    assert_eq!(files[1]["size_bytes"], token.len() as i64);
+    let hash = files[1]["hash"].as_str().unwrap();
+    assert_eq!(hash.len(), 64);
+    assert!(hash.chars().all(|ch| ch.is_ascii_hexdigit()));
+    assert!(value["data"].get("contents").is_none());
+}
+
+#[test]
+fn health_files_missing_path_is_unavailable_and_not_clean() {
+    let dir = tempdir().unwrap();
+    let secret = dir.path().join("secret.env");
+    let missing = dir.path().join("absent.toml");
+    let token = "token=ghp_SuperSecretTokenValue";
+    std::fs::write(&secret, token.as_bytes()).unwrap();
+    let config = dir.path().join("config.toml");
+    std::fs::write(
+        &config,
+        format!(
+            "schema_version = 1\n\n[snapshot]\nconfig_hash_allowlist = [{secret:?}, {missing:?}]\n",
+            secret = secret.display().to_string(),
+            missing = missing.display().to_string(),
+        ),
+    )
+    .unwrap();
+
+    let output = devguard()
+        .args(["--config", config.to_str().unwrap(), "health", "files"])
+        .output()
+        .expect("health files");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard health files"));
+    assert!(stdout.contains("unavailable (missing)"));
+    assert!(stdout.contains("clean: no"));
+    assert!(stdout.contains("sha256="));
+    assert!(!stdout.contains(token), "{stdout}");
+    assert!(!stdout.contains("SuperSecret"), "{stdout}");
+}
+
+#[test]
 fn slm_host_human_prints_the_sample_header() {
     let output = devguard().args(["slm", "host"]).output().expect("slm host");
     let stdout = String::from_utf8_lossy(&output.stdout);

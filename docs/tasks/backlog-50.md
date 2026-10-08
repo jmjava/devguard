@@ -48,7 +48,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 - [ ] #devguard #m1 Collect listening sockets via `ss` (proto/addr/port/process; missing attribution distinct)
 - [x] #devguard #m1 Collect NVIDIA driver/GPU + selected PCI/modules for upgrade diffs
 - [ ] #devguard #m1 Collect toolchain versions (rustc/cargo, gcc/clang, java, python, node, git, docker)
-- [ ] #devguard #m1 Allowlist config-file hashing (hash+metadata only; never persist secret bytes)
+- [x] #devguard #m1 Allowlist config-file hashing (hash+metadata only; never persist secret bytes)
 - [ ] #devguard #m1 `snapshot create [--label]` / `list` / `diff` — stable order; severity hints ≠ facts
 - [ ] #devguard #m1 Upgrade fixtures: kernel/driver/port/package drift; partial coverage never marked clean
 

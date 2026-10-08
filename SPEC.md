@@ -193,6 +193,7 @@ Collect:
 - `gpu scan` reads `nvidia-smi` once. It prints a hash of each GPU UUID and does not print the raw UUID. Missing `nvidia-smi` or a missing field is `unavailable`, and the result is not clean. Multiple GPUs stay in nvidia-smi index order. The call times out and keeps a bounded capture. It does not use sudo or load kernel modules. It does not collect process arguments.
 - `health ports` reads local `ss -lntup` once and reports protocol, address, port, and process name. A missing `ss` is `unavailable`, and the result is not clean. A listening row with no process name is attribution missing, which is distinct from a closed port. The command does not open a port, scan a remote host, or collect command arguments.
 - `health units` reports unit name, enabled state, active state, and whether the unit is failed. It reads one `systemctl show` listing. If `systemctl` is missing or the listing is unreadable, the result is `unavailable` and not clean. It does not start, stop, enable, or disable units, and it does not use sudo.
+- `health files` hashes each path in `snapshot.config_hash_allowlist`. A regular file reports its path, byte size, mtime, and SHA-256. A missing or unreadable path is `unavailable`, and the result is not clean. The command does not store or print file bytes.
 - Include diagnostic advice only when backed by collected metrics; avoid false precision.
 
 ### C. Security Sentinel

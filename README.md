@@ -21,6 +21,7 @@ Working today:
 - `devguard health watch --interval 5s` — ratatui view of that same fan diagnostic. Refreshes on a bounded interval and exits on Ctrl+C. Does not start a background service or signal processes. Missing `sensors` or `nvidia-smi` stays `unavailable`.
 - `devguard health ports` — local listening sockets from `ss` (protocol, address, port, process name). A missing `ss` is `unavailable` and not clean. A row with no process name is attribution missing, which is still listening. Does not open a port, scan a remote host, or collect command arguments.
 - `devguard health gpu-id` — NVIDIA driver version, GPU name, and PCI bus id for upgrade diffs. A missing `nvidia-smi` or a missing field is `unavailable` and not clean. Does not use sudo or load a kernel module.
+- `devguard health files` — SHA-256 of each path in `snapshot.config_hash_allowlist`, plus byte size and mtime. A missing or unreadable path is `unavailable` and not clean. Does not store or print file bytes.
 - `devguard gpu scan` — one-shot NVIDIA reading (human and `--json`). A hash of the GPU UUID, never the raw UUID. Missing `nvidia-smi` or a missing field is `unavailable`, never a clean result. Does not use sudo or load modules.
 - `devguard remote status` — host and tunnel reachability. Off until local config names an SSH host and user. Does not print that target.
 - `devguard remote tunnel up` / `down` — SSH local-forward to Ollama on `127.0.0.1` inside WSL. No bind on all interfaces, no public tunnel, no arbitrary command, no file upload, no firewall change, and no resident daemon.
