@@ -50,7 +50,9 @@ Privileges: ordinary user execution. Mutating commands (backup run/restore) requ
 explicit configuration and confirmation.\n\n\
 Dependencies (feature-detected): nvidia-smi, sensors, git, ss, systemctl, restic/rustic. \
 `dev env` reports version lines for rustc, cargo, python3, node, git, and gcc. \
-`dev repos` reports branch, upstream, dirty, untracked, and unpushed for one path."
+`dev repos scan` reads dirty, untracked, branch, upstream, and unpublished commits \
+for git work trees under an explicit path or dev.repo_roots. It does not fetch, \
+pull, push, or walk the home directory."
 )]
 struct Cli {
     /// Path to config.toml (default: ~/.config/devguard/config.toml)
@@ -93,8 +95,8 @@ enum Commands {
         #[command(subcommand)]
         action: SlmCommands,
     },
-    /// Developer toolchain inventory and one git work-tree reading.
-    /// Does not install tools, fetch, push, use the network, or audit packages.
+    /// Developer toolchain inventory and an opt-in git repository scan.
+    /// Does not install tools, fetch, pull, push, use the network, or audit packages.
     Dev {
         #[command(subcommand)]
         action: DevCommands,
@@ -206,14 +208,25 @@ enum DevCommands {
     /// A tool that is not on PATH is unavailable, and that report is not clean.
     /// This command does not install tools, use the network, or run a package audit.
     Env,
-    /// Report branch, upstream, dirty, untracked, and unpushed commits for one path.
-    ///
-    /// A path that is not a git work tree is unavailable, and the result is not clean.
-    /// This command does not fetch, push, or use the network.
+    /// Opt-in git work-tree scan. Does not fetch, pull, push, or use sudo.
     Repos {
-        /// Path to inspect.
+        #[command(subcommand)]
+        action: ReposCommands,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum ReposCommands {
+    /// Scan explicit paths and `dev.repo_roots` for git work trees.
+    ///
+    /// If the operator passes no path and config names none, the result is
+    /// unavailable and not clean. A missing git binary or an unreadable path
+    /// is unavailable and not clean. This command does not fetch, pull, push,
+    /// use the network, or use sudo, and it does not walk the home directory.
+    Scan {
+        /// Opt-in directory. Repeat to scan more than one path.
         #[arg(value_name = "PATH")]
-        path: PathBuf,
+        paths: Vec<PathBuf>,
     },
 }
 
@@ -345,7 +358,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             SlmCommands::Export(action) => cmd_slm_export::run(cli.json, paths, action),
             SlmCommands::Checklist(action) => cmd_slm_checklist::run(cli.json, paths, action),
         },
-        Commands::Dev { action } => run_dev(cli.json, action),
+        Commands::Dev { action } => run_dev(cli.json, paths, action),
         Commands::Config {
             action: ConfigCommands::Init { force },
         } => {
@@ -442,7 +455,11 @@ Next: edit model_dirs / repo paths as needed, then run `devguard doctor`.\n",
     }
 }
 
-fn run_dev(json: bool, action: DevCommands) -> Result<ExitCode, devguard_core::DevGuardError> {
+fn run_dev(
+    json: bool,
+    locations: &DevGuardPaths,
+    action: DevCommands,
+) -> Result<ExitCode, devguard_core::DevGuardError> {
     match action {
         DevCommands::Env => {
             let report = scan_dev_env();
@@ -459,14 +476,21 @@ fn run_dev(json: bool, action: DevCommands) -> Result<ExitCode, devguard_core::D
             }
             Ok(report.exit_code())
         }
-        DevCommands::Repos { path } => {
-            let report = scan_dev_repos(&path);
+        DevCommands::Repos {
+            action: ReposCommands::Scan { paths },
+        } => {
+            let config = load_config_optional(&locations.config_file)?;
+            let config_roots = config
+                .as_ref()
+                .map(|config| config.dev.repo_roots.clone())
+                .unwrap_or_default();
+            let report = scan_dev_repos(&git_bin()?, &paths, &config_roots);
             let warnings = report.warnings();
             if json {
                 let envelope = if warnings.is_empty() {
-                    JsonEnvelope::success("dev repos", &report)
+                    JsonEnvelope::success("dev repos scan", &report)
                 } else {
-                    JsonEnvelope::success_with_warnings("dev repos", &report, warnings)
+                    JsonEnvelope::success_with_warnings("dev repos scan", &report, warnings)
                 };
                 emit_json(&envelope)?;
             } else {
@@ -717,6 +741,21 @@ fn load_config_optional(
 
 fn remote_err(err: devguard_core::remote::RemoteError) -> devguard_core::DevGuardError {
     devguard_core::DevGuardError::Message(err.to_string())
+}
+
+fn git_bin() -> Result<PathBuf, devguard_core::DevGuardError> {
+    match std::env::var("DEVGUARD_GIT_BIN") {
+        Ok(value) if !value.is_empty() => {
+            let path = PathBuf::from(&value);
+            if !path.is_absolute() {
+                return Err(devguard_core::DevGuardError::Usage(
+                    "DEVGUARD_GIT_BIN must be an absolute path".into(),
+                ));
+            }
+            Ok(path)
+        }
+        _ => Ok(PathBuf::from("git")),
+    }
 }
 
 fn ssh_bin() -> Result<PathBuf, devguard_core::DevGuardError> {
