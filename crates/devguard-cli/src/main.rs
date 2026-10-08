@@ -17,6 +17,7 @@ use devguard_core::dev_env::{format_dev_env_human, scan_dev_env};
 use devguard_core::doctor::run_doctor;
 use devguard_core::exit::ExitCode;
 use devguard_core::fan::{format_fan_human, scan_fan};
+use devguard_core::files::{format_files_human, scan_config_files};
 use devguard_core::gpu::{format_gpu_human, scan_gpu};
 use devguard_core::gpu_id::{format_gpu_id_human, scan_gpu_id};
 use devguard_core::health_scan::{format_health_scan_human, scan_health};
@@ -161,6 +162,12 @@ enum HealthCommands {
     /// is unavailable, and the result is not clean. Does not use sudo or load
     /// a kernel module.
     GpuId,
+    /// Hash allowlisted config files. Reports path, byte size, mtime, and SHA-256.
+    ///
+    /// The allowlist is `snapshot.config_hash_allowlist`. A missing or
+    /// unreadable path is unavailable, and the result is not clean. File bytes
+    /// are not stored or printed.
+    Files,
     /// Refresh the fan diagnostic in a terminal. Exits on Ctrl+C.
     ///
     /// The interval is bounded to 1s..300s (`5s`, `1m`, `1000ms`). This command
@@ -310,7 +317,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             }
             Ok(report.exit_code())
         }
-        Commands::Health { action } => run_health(cli.json, action),
+        Commands::Health { action } => run_health(cli.json, paths, action),
         Commands::Remote { action } => run_remote(cli.json, paths, action),
         Commands::Slm { action } => match action {
             SlmCommands::Energy(action) => cmd_slm_energy::run(cli.json, action),
@@ -437,6 +444,7 @@ fn run_dev(json: bool, action: DevCommands) -> Result<ExitCode, devguard_core::D
 
 fn run_health(
     json: bool,
+    paths: &DevGuardPaths,
     action: HealthCommands,
 ) -> Result<ExitCode, devguard_core::DevGuardError> {
     match action {
@@ -558,6 +566,22 @@ fn run_health(
             }
             Ok(report.exit_code())
         }
+        HealthCommands::Files => {
+            let allowlist = config_hash_allowlist(paths)?;
+            let report = scan_config_files(&allowlist);
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("health files", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("health files", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_files_human(&report));
+            }
+            Ok(report.exit_code())
+        }
         HealthCommands::Watch { interval } => {
             let interval = parse_watch_interval(&interval)?;
             if json {
@@ -616,6 +640,18 @@ fn run_remote(
             }
             Ok(ExitCode::Success)
         }
+    }
+}
+
+fn config_hash_allowlist(
+    paths: &DevGuardPaths,
+) -> Result<Vec<String>, devguard_core::DevGuardError> {
+    if paths.config_file.is_file() {
+        Ok(Config::load(&paths.config_file)?
+            .snapshot
+            .config_hash_allowlist)
+    } else {
+        Ok(Config::default().snapshot.config_hash_allowlist)
     }
 }
 
