@@ -3477,3 +3477,248 @@ fn security_scan_missing_ufw_is_unknown() {
         .iter()
         .any(|item| item.as_str().unwrap_or("").contains("firewall unavailable")));
 }
+#[test]
+fn security_help_keeps_existing_commands_and_adds_diff() {
+    devguard()
+        .args(["security", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("paths"))
+        .stdout(predicate::str::contains("firewall"))
+        .stdout(predicate::str::contains("updates"))
+        .stdout(predicate::str::contains("ssh-auth"))
+        .stdout(predicate::str::contains("scan"))
+        .stdout(predicate::str::contains("diff"));
+    devguard()
+        .args(["security", "diff", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("snapshot"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("unknown"))
+        .stdout(predicate::str::contains("fact"))
+        .stdout(predicate::str::contains("malware"));
+}
+
+#[test]
+fn security_diff_reads_fixture_snapshots_from_a_temp_database() {
+    let dir = tempdir().expect("tempdir");
+    let home_db = home_devguard_db();
+    let before = db_stamp(&home_db);
+    insert_fixture_snapshot(
+        dir.path(),
+        "base",
+        "pre-upgrade",
+        &drift_payload(
+            r#"[{"protocol":"tcp","address":"127.0.0.1","port":22,"process":"sshd","attribution":"present"},{"protocol":"tcp","address":"0.0.0.0","port":80,"process":"nginx","attribution":"present"}]"#,
+            true,
+            0,
+            r#"[{"name":"broken.service","enabled":"enabled","active":"failed","failed":true}]"#,
+            true,
+        ),
+    );
+    insert_fixture_snapshot(
+        dir.path(),
+        "now",
+        "post-upgrade",
+        &drift_payload(
+            r#"[{"protocol":"tcp","address":"127.0.0.1","port":22,"process":"sshd","attribution":"present"},{"protocol":"tcp","address":"127.0.0.1","port":9,"process":"mystery-bin","attribution":"present"},{"protocol":"tcp","address":"0.0.0.0","port":9,"process":"mystery-bin","attribution":"present"}]"#,
+            true,
+            0,
+            r#"[{"name":"fresh.service","enabled":"enabled","active":"failed","failed":true}]"#,
+            true,
+        ),
+    );
+
+    let output = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "security", "diff", "base", "now"])
+        .output()
+        .expect("security diff");
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains("journal"));
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "security diff");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["baseline_id"], "base");
+    assert_eq!(value["data"]["current_id"], "now");
+    assert_eq!(value["data"]["baseline_label"], "pre-upgrade");
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["opens_network"], false);
+    assert_eq!(value["data"]["rescans_host"], false);
+    let added = value["data"]["added_ports"].as_array().expect("added");
+    assert_eq!(added.len(), 2);
+    assert_eq!(added[0]["key"], "port:tcp:0.0.0.0:9");
+    assert_eq!(added[0]["severity"], "critical");
+    assert!(added[0]["fact"].as_str().unwrap().contains("mystery-bin"));
+    assert!(!added[0]["fact"].as_str().unwrap().contains("critical"));
+    assert_eq!(added[1]["key"], "port:tcp:127.0.0.1:9");
+    assert_eq!(added[1]["severity"], "warning");
+    let removed = value["data"]["removed_ports"].as_array().expect("removed");
+    assert_eq!(removed[0]["key"], "port:tcp:0.0.0.0:80");
+    assert_eq!(removed[0]["severity"], "info");
+    assert_eq!(
+        value["data"]["added_failed_units"][0]["key"],
+        "unit:fresh.service"
+    );
+    assert_eq!(
+        value["data"]["added_failed_units"][0]["severity"],
+        "warning"
+    );
+    assert_eq!(
+        value["data"]["removed_failed_units"][0]["key"],
+        "unit:broken.service"
+    );
+    assert_eq!(value["data"]["removed_failed_units"][0]["severity"], "info");
+    assert!(value["data"]["gaps"].as_array().unwrap().is_empty());
+    assert_eq!(db_stamp(&home_db), before, "home devguard.db changed");
+
+    let human = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["security", "diff", "base", "now"])
+        .output()
+        .expect("human diff");
+    assert_eq!(human.status.code(), Some(2));
+    let text = String::from_utf8_lossy(&human.stdout);
+    assert!(text.contains("DevGuard security diff"));
+    assert!(text.contains("uses sudo: no"));
+    assert!(text.contains("rescans the host: no"));
+    assert!(text.contains("fact: listening tcp 0.0.0.0:9 process=mystery-bin"));
+    assert!(text.contains("severity: critical"));
+    assert!(text.contains("severity: warning"));
+    assert!(text.contains("severity: info"));
+}
+
+#[test]
+fn security_diff_missing_snapshot_is_an_operational_error() {
+    let dir = tempdir().expect("tempdir");
+    insert_fixture_snapshot(
+        dir.path(),
+        "base",
+        "pre-upgrade",
+        &drift_payload("[]", true, 0, "[]", true),
+    );
+    let output = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "security", "diff", "base", "missing"])
+        .output()
+        .expect("security diff");
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("snapshot missing was not found"),
+        "{stderr}"
+    );
+    assert!(output.stdout.is_empty());
+}
+
+#[test]
+fn security_diff_unavailable_collector_is_unknown_and_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    insert_fixture_snapshot(
+        dir.path(),
+        "base",
+        "pre-upgrade",
+        &drift_payload("[]", false, 0, "[]", true),
+    );
+    insert_fixture_snapshot(
+        dir.path(),
+        "now",
+        "post-upgrade",
+        &drift_payload(
+            r#"[{"protocol":"tcp","address":"0.0.0.0","port":9,"process":"mystery-bin","attribution":"present"}]"#,
+            true,
+            0,
+            "[]",
+            true,
+        ),
+    );
+    let output = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "security", "diff", "base", "now"])
+        .output()
+        .expect("security diff");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["data"]["clean"], false);
+    assert!(value["data"]["added_ports"].as_array().unwrap().is_empty());
+    assert_eq!(value["data"]["gaps"][0]["key"], "collector:ports");
+    assert_eq!(value["data"]["gaps"][0]["severity"], "unknown");
+    assert!(value["data"]["gaps"][0]["fact"]
+        .as_str()
+        .unwrap()
+        .contains("baseline"));
+    let warnings = value["warnings"].as_array().expect("warnings");
+    assert!(warnings
+        .iter()
+        .any(|warning| warning.as_str().unwrap().contains("ports collector")));
+}
+
+fn insert_fixture_snapshot(dir: &std::path::Path, id: &str, label: &str, payload: &str) {
+    let store = devguard_store::Store::open(&devguard_store::database_path(dir)).expect("store");
+    store
+        .insert_snapshot(&devguard_store::Snapshot {
+            id: id.to_string(),
+            created_at: "2026-10-07T00:00:00.000Z".into(),
+            label: Some(label.to_string()),
+            run_id: None,
+            payload: payload.to_string(),
+        })
+        .expect("insert");
+}
+
+fn drift_payload(
+    sockets: &str,
+    ports_available: bool,
+    unparsed_rows: u32,
+    units: &str,
+    units_available: bool,
+) -> String {
+    let ports_status = if ports_available {
+        "available"
+    } else {
+        "unavailable"
+    };
+    let units_status = if units_available {
+        "available"
+    } else {
+        "unavailable"
+    };
+    format!(
+        r#"{{
+          "collectors": {{
+            "ports": {{
+              "status": "{ports_status}",
+              "report": {{
+                "opens_port": false,
+                "scans_remote": false,
+                "collects_arguments": false,
+                "clean": {ports_clean},
+                "ss": {{ "status": "{ports_status}", "detail": "fixture" }},
+                "sockets": {sockets},
+                "unparsed_rows": {unparsed_rows}
+              }}
+            }},
+            "units": {{
+              "status": "{units_status}",
+              "report": {{
+                "uses_sudo": false,
+                "starts_units": false,
+                "stops_units": false,
+                "enables_units": false,
+                "disables_units": false,
+                "clean": {units_clean},
+                "status": "{units_status}",
+                "systemctl": {{ "status": "{units_status}", "detail": "fixture" }},
+                "units": {units}
+              }}
+            }}
+          }}
+        }}"#,
+        ports_clean = ports_available && unparsed_rows == 0,
+        units_clean = units_available,
+    )
+}

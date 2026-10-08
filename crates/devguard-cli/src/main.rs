@@ -1,5 +1,6 @@
 //! DevGuard CLI entrypoint.
 
+mod cmd_security_diff;
 mod cmd_slm_checklist;
 mod cmd_slm_energy;
 mod cmd_slm_export;
@@ -267,6 +268,20 @@ enum SecurityCommands {
     /// Does not use sudo, recurse, read file contents, change firewall rules,
     /// or run apt.
     Scan,
+    /// Diff listening ports and failed units between two stored snapshots.
+    ///
+    /// Reads snapshot rows already stored by `devguard snapshot`. Does not
+    /// rescan the host, use sudo, or open a network connection. A missing
+    /// snapshot id is an error. If the port or unit collector is unavailable,
+    /// the result is not clean and that gap is unknown. Each entry has a fact
+    /// and a separate severity (info, warning, critical, or unknown). An
+    /// unfamiliar process name is not malware proof.
+    Diff {
+        /// Baseline snapshot id.
+        baseline_id: String,
+        /// Current snapshot id.
+        current_id: String,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -924,6 +939,10 @@ fn run_security(
             }
             Ok(report.exit_code())
         }
+        SecurityCommands::Diff {
+            baseline_id,
+            current_id,
+        } => cmd_security_diff::run(json, &remote_state_dir(paths)?, &baseline_id, &current_id),
     }
 }
 
