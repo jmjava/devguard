@@ -1,9 +1,11 @@
-//! Findings for `devguard security scan`.
+//! Findings for `devguard security scan` and `devguard security findings`.
 //!
-//! The command calls `scan_firewall`, `scan_path_permissions`, and
-//! `scan_security_updates`. It does not re-read firewall output, walk the
-//! disk, or parse APT lists itself. Each finding keeps the observed fact
-//! separate from a severity of `info`, `warning`, `critical`, or `unknown`.
+//! Both commands call `scan_firewall`, `scan_path_permissions`, and
+//! `scan_security_updates`. They do not re-read firewall output, walk the
+//! disk, or parse APT lists themselves. `security findings` prints that same
+//! list. `--severity` keeps one level; omitting it prints every finding.
+//! Each finding keeps the observed fact separate from a severity of `info`,
+//! `warning`, `critical`, or `unknown`.
 //!
 //! An unavailable source is `unknown`, and the scan is not clean. An
 //! unfamiliar nftables name or sshd setting is not proof of malware.
@@ -51,13 +53,44 @@ pub enum FindingSeverity {
 }
 
 impl FindingSeverity {
-    fn as_str(self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::Info => "info",
             Self::Warning => "warning",
             Self::Critical => "critical",
             Self::Unknown => "unknown",
         }
+    }
+
+    /// Parse `info`, `warning`, `critical`, or `unknown`.
+    pub fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "info" => Ok(Self::Info),
+            "warning" => Ok(Self::Warning),
+            "critical" => Ok(Self::Critical),
+            "unknown" => Ok(Self::Unknown),
+            other => Err(format!(
+                "severity must be info, warning, critical, or unknown (got {other})"
+            )),
+        }
+    }
+}
+
+/// `security findings` view of a scan.
+///
+/// `severity` is the requested filter. `None` means every finding is kept.
+/// `scan.clean` is the coverage of the full scan. Filtering an `unknown`
+/// finding out of the list does not make the result clean.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SecurityFindingsReport {
+    pub severity: Option<FindingSeverity>,
+    #[serde(flatten)]
+    pub scan: SecurityScanReport,
+}
+
+impl SecurityFindingsReport {
+    pub fn exit_code(&self) -> ExitCode {
+        self.scan.exit_code()
     }
 }
 
@@ -165,10 +198,44 @@ pub fn findings_from(
     }
 }
 
+/// Keep findings at `severity`, or every finding when `severity` is `None`.
+///
+/// Does not collect firewall, path, or update facts again. `clean` stays the
+/// full scan's coverage, so an unavailable source remains not clean after a
+/// filter hides its `unknown` row.
+pub fn filter_findings(
+    report: &SecurityScanReport,
+    severity: Option<FindingSeverity>,
+) -> SecurityFindingsReport {
+    let mut scan = report.clone();
+    if let Some(level) = severity {
+        scan.findings.retain(|finding| finding.severity == level);
+    }
+    SecurityFindingsReport { severity, scan }
+}
+
 /// Human report. Severity is printed beside the fact, not inside it.
 pub fn format_security_scan_human(report: &SecurityScanReport) -> String {
     let mut out = String::new();
     out.push_str("DevGuard security scan\n");
+    push_finding_body(&mut out, report);
+    out
+}
+
+/// Human report for `devguard security findings`.
+pub fn format_security_findings_human(report: &SecurityFindingsReport) -> String {
+    let mut out = String::new();
+    out.push_str("DevGuard security findings\n");
+    let selected = report
+        .severity
+        .map(FindingSeverity::as_str)
+        .unwrap_or("all");
+    out.push_str(&format!("  severity: {selected}\n"));
+    push_finding_body(&mut out, &report.scan);
+    out
+}
+
+fn push_finding_body(out: &mut String, report: &SecurityScanReport) {
     out.push_str("  uses sudo: no\n");
     out.push_str("  reads file contents: no\n");
     out.push_str("  prints file contents: no\n");
@@ -186,7 +253,7 @@ pub fn format_security_scan_human(report: &SecurityScanReport) -> String {
     out.push_str("\nFindings\n");
     if report.findings.is_empty() {
         out.push_str("  none\n");
-        return out;
+        return;
     }
     for finding in &report.findings {
         out.push_str(&format!(
@@ -196,7 +263,6 @@ pub fn format_security_scan_human(report: &SecurityScanReport) -> String {
             finding.fact
         ));
     }
-    out
 }
 
 fn push_firewall(findings: &mut Vec<Finding>, report: &FirewallReport) {
@@ -836,5 +902,161 @@ mod tests {
         let listen = finding(&report, "firewall", "sshd listens on 0.0.0.0");
         assert_eq!(listen.severity, FindingSeverity::Warning);
         assert_eq!(report.exit_code(), ExitCode::Findings);
+    }
+
+    #[test]
+    fn findings_without_a_filter_prints_every_scan_finding() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = token_path(dir.path(), 0o640);
+        let scan = findings_from(
+            &quiet_firewall(),
+            &scan_path_permissions(&[path]),
+            &quiet_updates(dir.path()),
+        );
+        let report = filter_findings(&scan, None);
+        assert_eq!(report.severity, None);
+        assert_eq!(report.scan.findings, scan.findings);
+        assert_eq!(report.scan.clean, scan.clean);
+        assert!(report.scan.clean);
+        assert_eq!(report.exit_code(), ExitCode::Success);
+        let human = format_security_findings_human(&report);
+        assert!(human.contains("DevGuard security findings"));
+        assert!(human.contains("severity: all"));
+        assert!(human.contains("uses sudo: no"));
+        assert!(human.contains("unfamiliar name is malware: no"));
+        assert!(human.contains("[info] firewall: ufw status is active"));
+        assert!(!human.contains("ghp_SuperSecretTokenValue"));
+    }
+
+    #[test]
+    fn findings_severity_keeps_only_that_level() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = token_path(dir.path(), 0o666);
+        let notifier = dir.path().join("updates-available");
+        let status = dir.path().join("status");
+        let lists = dir.path().join("lists");
+        fs::write(&notifier, "1 update can be applied immediately.\n").unwrap();
+        fs::write(
+            &status,
+            "Package: bash\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1.0\n",
+        )
+        .unwrap();
+        fs::create_dir_all(&lists).unwrap();
+        fs::write(
+            lists.join(
+                "security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages",
+            ),
+            "Package: bash\nArchitecture: amd64\nVersion: 1.1\n",
+        )
+        .unwrap();
+        let scan = findings_from(
+            &quiet_firewall(),
+            &scan_path_permissions(&[path]),
+            &read_security_updates(&notifier, &status, &lists),
+        );
+        let report = filter_findings(&scan, Some(FindingSeverity::Warning));
+        assert_eq!(report.severity, Some(FindingSeverity::Warning));
+        assert!(report.scan.clean);
+        assert!(report
+            .scan
+            .findings
+            .iter()
+            .all(|finding| finding.severity == FindingSeverity::Warning));
+        assert!(report.scan.findings.iter().any(|finding| {
+            finding.source == "updates" && finding.fact.contains("bash 1.0 -> 1.1")
+        }));
+        assert!(report
+            .scan
+            .findings
+            .iter()
+            .all(|finding| !finding.fact.contains("ufw status is active")));
+        assert_eq!(report.exit_code(), ExitCode::Findings);
+        let human = format_security_findings_human(&report);
+        assert!(human.contains("severity: warning"));
+        assert!(human.contains("[warning] updates: bash 1.0 -> 1.1"));
+        assert!(!human.contains("[info]"));
+    }
+
+    #[test]
+    fn filtering_info_does_not_make_an_unknown_source_clean() {
+        let dir = tempfile::tempdir().unwrap();
+        let missing = dir.path().join("absent.toml");
+        let scan = findings_from(
+            &quiet_firewall(),
+            &scan_path_permissions(&[missing.display().to_string()]),
+            &quiet_updates(dir.path()),
+        );
+        assert!(!scan.clean);
+        let report = filter_findings(&scan, Some(FindingSeverity::Info));
+        assert!(!report.scan.clean);
+        assert_eq!(report.exit_code(), ExitCode::Partial);
+        assert!(report
+            .scan
+            .findings
+            .iter()
+            .all(|finding| finding.severity == FindingSeverity::Info));
+        assert!(report
+            .scan
+            .findings
+            .iter()
+            .all(|finding| finding.severity != FindingSeverity::Unknown));
+        assert!(scan
+            .warnings()
+            .iter()
+            .any(|warning| warning.contains("paths unavailable")));
+        let unknown = filter_findings(&scan, Some(FindingSeverity::Unknown));
+        assert!(!unknown.scan.clean);
+        assert_eq!(unknown.exit_code(), ExitCode::Partial);
+        assert!(unknown.scan.findings.iter().any(|finding| {
+            finding.source == "paths" && finding.severity == FindingSeverity::Unknown
+        }));
+        let human = format_security_findings_human(&unknown);
+        assert!(human.contains("clean: no"));
+        assert!(human.contains("[unknown] paths:"));
+        assert!(human.contains("severity: unknown"));
+    }
+
+    #[test]
+    fn findings_filter_does_not_treat_an_unfamiliar_name_as_malware() {
+        let tables = parse_nft_ruleset(
+            "table inet not-a-virus-widget {\n\tchain input {\n\t\ttype filter hook input priority 0; policy drop;\n\t}\n}\n",
+        )
+        .expect("ruleset");
+        let firewall = firewall_report(
+            covered("ufw"),
+            Some(
+                parse_ufw_status(
+                    &fs::read_to_string(fixtures().join("ufw-status-verbose.txt")).unwrap(),
+                )
+                .unwrap(),
+            ),
+            covered("nft"),
+            tables,
+            covered("ssh"),
+            quiet_firewall().ssh_config,
+        );
+        let dir = tempfile::tempdir().unwrap();
+        let path = token_path(dir.path(), 0o640);
+        let scan = findings_from(
+            &firewall,
+            &scan_path_permissions(&[path]),
+            &quiet_updates(dir.path()),
+        );
+        let report = filter_findings(&scan, Some(FindingSeverity::Info));
+        let widget = report
+            .scan
+            .findings
+            .iter()
+            .find(|finding| finding.fact.contains("not-a-virus-widget"))
+            .expect("nft name");
+        assert_eq!(widget.severity, FindingSeverity::Info);
+        assert!(!widget.fact.to_ascii_lowercase().contains("malware"));
+        assert!(!report.scan.unfamiliar_name_is_malware);
+        assert!(!report.scan.uses_sudo);
+        assert_eq!(
+            FindingSeverity::parse("warning").unwrap(),
+            FindingSeverity::Warning
+        );
+        assert!(FindingSeverity::parse("malware").is_err());
     }
 }
