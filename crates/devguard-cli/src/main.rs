@@ -13,6 +13,7 @@ use std::process::ExitCode as StdExitCode;
 
 use clap::{Parser, Subcommand};
 use devguard_core::config::{Config, ConfigPaths};
+use devguard_core::dev_env::{format_dev_env_human, scan_dev_env};
 use devguard_core::doctor::run_doctor;
 use devguard_core::exit::ExitCode;
 use devguard_core::fan::{format_fan_human, scan_fan};
@@ -41,7 +42,8 @@ use crate::watch::run_watch;
 monitoring, and capturing developer/SLM workstation metrics.\n\n\
 Privileges: ordinary user execution. Mutating commands (backup run/restore) require \
 explicit configuration and confirmation.\n\n\
-Dependencies (feature-detected): nvidia-smi, sensors, git, ss, systemctl, restic/rustic."
+Dependencies (feature-detected): nvidia-smi, sensors, git, ss, systemctl, restic/rustic. \
+`dev env` reports version lines for rustc, cargo, python3, node, git, and gcc."
 )]
 struct Cli {
     /// Path to config.toml (default: ~/.config/devguard/config.toml)
@@ -83,6 +85,11 @@ enum Commands {
     Slm {
         #[command(subcommand)]
         action: SlmCommands,
+    },
+    /// Developer toolchain inventory. Does not install tools, use the network, or audit packages.
+    Dev {
+        #[command(subcommand)]
+        action: DevCommands,
     },
     /// Configuration management
     Config {
@@ -151,6 +158,15 @@ enum GpuCommands {
     ///
     /// Prints a hash of each GPU UUID. Does not print the raw UUID, use sudo, or load modules.
     Scan,
+}
+
+#[derive(Debug, Subcommand)]
+enum DevCommands {
+    /// Report version lines for rustc, cargo, python3, node, git, and gcc.
+    ///
+    /// A tool that is not on PATH is unavailable, and that report is not clean.
+    /// This command does not install tools, use the network, or run a package audit.
+    Env,
 }
 
 #[derive(Debug, Subcommand)]
@@ -281,6 +297,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             SlmCommands::Export(action) => cmd_slm_export::run(cli.json, paths, action),
             SlmCommands::Checklist(action) => cmd_slm_checklist::run(cli.json, paths, action),
         },
+        Commands::Dev { action } => run_dev(cli.json, action),
         Commands::Config {
             action: ConfigCommands::Init { force },
         } => {
@@ -373,6 +390,26 @@ Next: edit model_dirs / repo paths as needed, then run `devguard doctor`.\n",
             } else {
                 Ok(ExitCode::Partial)
             }
+        }
+    }
+}
+
+fn run_dev(json: bool, action: DevCommands) -> Result<ExitCode, devguard_core::DevGuardError> {
+    match action {
+        DevCommands::Env => {
+            let report = scan_dev_env();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("dev env", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("dev env", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_dev_env_human(&report));
+            }
+            Ok(report.exit_code())
         }
     }
 }
