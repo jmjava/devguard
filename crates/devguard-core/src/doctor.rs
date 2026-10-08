@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::Config;
 use crate::paths::DevGuardPaths;
+use crate::redact::redact_text;
 
 /// Overall doctor report.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -261,10 +262,16 @@ fn check_binary(name: &str, category: &str, required: bool) -> PrerequisiteCheck
     }
 }
 
+/// First line of external tool text, with token-like strings replaced.
+fn copied_tool_line(text: &str) -> String {
+    let redacted = redact_text(text.trim());
+    redacted.lines().next().unwrap_or("").trim().to_string()
+}
+
 fn which(name: &str) -> Option<String> {
     if let Ok(output) = Command::new("which").arg(name).output() {
         if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            let path = redact_text(String::from_utf8_lossy(&output.stdout).trim());
             if !path.is_empty() {
                 return Some(path);
             }
@@ -292,12 +299,11 @@ fn check_nvidia_query() -> PrerequisiteCheck {
                 .output();
             match output {
                 Ok(out) if out.status.success() => {
-                    let detail = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    let detail = copied_tool_line(&String::from_utf8_lossy(&out.stdout));
                     let detail = if detail.is_empty() {
                         "nvidia-smi query succeeded".into()
                     } else {
-                        // Keep short; avoid dumping excessive device noise.
-                        detail.lines().next().unwrap_or("ok").to_string()
+                        detail
                     };
                     PrerequisiteCheck {
                         id: "nvidia-smi-query".into(),
@@ -308,7 +314,7 @@ fn check_nvidia_query() -> PrerequisiteCheck {
                     }
                 }
                 Ok(out) => {
-                    let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                    let err = copied_tool_line(&String::from_utf8_lossy(&out.stderr));
                     PrerequisiteCheck {
                         id: "nvidia-smi-query".into(),
                         category: "slm-gpu".into(),
@@ -359,5 +365,22 @@ mod tests {
         let h = hostname_hash();
         assert!(h.starts_with("hn-"));
         assert_eq!(h.len(), 3 + 16);
+    }
+
+    #[test]
+    fn copied_tool_text_hides_token_shapes() {
+        let aws = format!("AKIA{}", "0".repeat(16));
+        let password = "fixture-pass";
+        let line = copied_tool_line(&format!("NVIDIA sample {aws} password={password}"));
+        assert!(
+            !line.contains(&aws),
+            "doctor tool text kept a fixture secret"
+        );
+        assert!(
+            !line.contains(password),
+            "doctor tool text kept a fixture secret"
+        );
+        assert!(line.contains("[REDACTED]"));
+        assert!(line.contains("NVIDIA sample"));
     }
 }

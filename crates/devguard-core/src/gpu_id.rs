@@ -293,7 +293,7 @@ fn text_field(raw: &str) -> Field {
     if is_missing_token(trimmed) {
         Field::unavailable()
     } else {
-        Field::available(trimmed)
+        Field::available(redact_text(trimmed))
     }
 }
 
@@ -747,5 +747,20 @@ mod tests {
         let err = run_readonly(sleep, &["30"], Duration::from_millis(300), 1024).unwrap_err();
         assert_eq!(err.kind(), std::io::ErrorKind::TimedOut);
         assert!(started.elapsed() < Duration::from_secs(3));
+    }
+
+    #[test]
+    fn query_report_hides_token_shapes() {
+        let secret = format!("sk-proj-{}", "d".repeat(24));
+        let report = report_from_query(&format!("{secret}, 550.54.14, 00000000:0A:00.0\n"));
+        let human = format_gpu_id_human(&report);
+        let json = serde_json::to_string(&report).expect("json");
+        assert!(
+            !human.contains(&secret),
+            "gpu-id report kept a fixture secret"
+        );
+        assert!(!json.contains(&secret), "gpu-id json kept a fixture secret");
+        assert!(human.contains("[REDACTED]"));
+        assert!(json.contains("[REDACTED]"));
     }
 }

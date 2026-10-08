@@ -432,7 +432,7 @@ fn text_field(raw: &str) -> Field<String> {
     if is_missing_token(trimmed) {
         Field::unavailable()
     } else {
-        Field::available(trimmed.to_string())
+        Field::available(redact_text(trimmed))
     }
 }
 
@@ -467,7 +467,7 @@ fn throttle_field(raw: &str) -> Field<String> {
             Err(_) => Field::unavailable(),
         };
     }
-    Field::available(trimmed.to_string())
+    Field::available(redact_text(trimmed))
 }
 
 fn decode_throttle(bits: u64) -> String {
@@ -503,7 +503,7 @@ fn parse_cuda_version(text: &str) -> Field<String> {
         let value = rest.trim_start_matches(':').trim();
         let value = strip_brackets(value);
         if !is_missing_token(value) {
-            return Field::available(value.to_string());
+            return Field::available(redact_text(value));
         }
     }
     Field::unavailable()
@@ -1070,5 +1070,17 @@ mod tests {
         .expect("dd");
         assert!(run.truncated);
         assert!(run.stdout.len() <= 4096);
+    }
+
+    #[test]
+    fn gpu_name_from_tool_text_hides_token_shapes() {
+        let secret = format!("sk-{}", "c".repeat(32));
+        let line = format!(
+            "0, deadbeef, {secret}, 550.54.14, 0, 0, 1, 2, 40, 15, 170, 1000, 5000, 0, Enabled, 0x0"
+        );
+        let device = parse_gpu_line(&line).expect("row");
+        let shown = device.name.value.unwrap_or_default();
+        assert!(!shown.contains(&secret), "gpu report kept a fixture secret");
+        assert!(shown.contains("[REDACTED]"));
     }
 }

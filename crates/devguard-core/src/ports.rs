@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 
 use crate::exit::ExitCode;
+use crate::redact::redact_text;
 
 const SS_TIMEOUT: Duration = Duration::from_secs(5);
 const SS_LIMIT: usize = 256 * 1024;
@@ -266,7 +267,7 @@ fn parse_line(line: &str) -> LineParse {
     let Some((address, port)) = split_address_port(local) else {
         return LineParse::Unparsed;
     };
-    let process = process_name(line);
+    let process = process_name(line).map(|name| redact_text(&name));
     let attribution = if process.is_some() {
         Attribution::Present
     } else {
@@ -632,5 +633,22 @@ udp UNCONN 0 0 127.0.0.1:9 0.0.0.0:* users:((\"/usr/sbin/named\",pid=1,fd=3))
         assert!(!report.clean);
         let json = serde_json::to_string(&report).unwrap();
         assert!(!json.contains("pid="));
+    }
+
+    #[test]
+    fn process_name_from_ss_hides_token_shapes() {
+        let secret = format!("ghp_{}", "a".repeat(36));
+        let listing =
+            format!("tcp LISTEN 0 128 127.0.0.1:22 0.0.0.0:* users:((\"{secret}\",pid=1,fd=3))\n");
+        let report = report_from_listing(&listing);
+        let human = format_ports_human(&report);
+        let json = serde_json::to_string(&report).expect("json");
+        assert!(
+            !human.contains(&secret),
+            "ports report kept a fixture secret"
+        );
+        assert!(!json.contains(&secret), "ports json kept a fixture secret");
+        assert!(human.contains("[REDACTED]"));
+        assert!(json.contains("[REDACTED]"));
     }
 }
