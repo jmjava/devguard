@@ -19,6 +19,7 @@ use devguard_core::doctor::run_doctor;
 use devguard_core::exit::ExitCode;
 use devguard_core::fan::{format_fan_human, scan_fan};
 use devguard_core::files::{format_files_human, scan_config_files};
+use devguard_core::firewall::{format_firewall_human, scan_firewall};
 use devguard_core::gpu::{format_gpu_human, scan_gpu};
 use devguard_core::gpu_id::{format_gpu_id_human, scan_gpu_id};
 use devguard_core::health_scan::{format_health_scan_human, scan_health};
@@ -49,7 +50,7 @@ use crate::watch::run_watch;
 monitoring, and capturing developer/SLM workstation metrics.\n\n\
 Privileges: ordinary user execution. Mutating commands (backup run/restore) require \
 explicit configuration and confirmation.\n\n\
-Dependencies (feature-detected): nvidia-smi, sensors, git, ss, systemctl, restic/rustic. \
+Dependencies (feature-detected): nvidia-smi, sensors, git, ss, systemctl, ufw, nft, restic/rustic. \
 `dev env` reports version lines for rustc, cargo, python3, node, git, and gcc. \
 `dev repos scan` reads dirty, untracked, branch, upstream, and unpublished commits \
 for git work trees under an explicit path or dev.repo_roots. It does not fetch, \
@@ -79,7 +80,7 @@ enum Commands {
         #[command(subcommand)]
         action: HealthCommands,
     },
-    /// Read-only security checks. Does not use sudo or read file contents.
+    /// Read-only security checks. Does not use sudo.
     Security {
         #[command(subcommand)]
         action: SecurityCommands,
@@ -209,6 +210,13 @@ enum SecurityCommands {
     /// clean. An empty allowlist means no paths were configured. This command
     /// does not recurse, use sudo, or read or print file contents.
     Paths,
+    /// Firewall status from `ufw` and nftables, plus SSH exposure where sshd config is readable.
+    ///
+    /// A missing `ufw`, `nft`, or unreadable sshd config is unavailable, and that
+    /// result is not clean. Does not run `ufw enable` or `ufw disable`, does not
+    /// change nftables rules, and does not use sudo. nftables output is detection,
+    /// not a full audit.
+    Firewall,
 }
 
 #[derive(Debug, Subcommand)]
@@ -755,6 +763,21 @@ fn run_security(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_path_perms_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        SecurityCommands::Firewall => {
+            let report = scan_firewall();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("security firewall", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("security firewall", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_firewall_human(&report));
             }
             Ok(report.exit_code())
         }
