@@ -10,6 +10,7 @@ repository.workspace = true
 
 [dependencies]
 chrono.workspace = true
+libc = "0.2"
 directories.workspace = true
 serde.workspace = true
 serde_json.workspace = true

@@ -8,6 +8,7 @@ pub mod error;
 pub mod exit;
 pub mod fan;
 pub mod gpu;
+pub mod host_sample;
 pub mod json;
 pub mod paths;
 pub mod redact;
