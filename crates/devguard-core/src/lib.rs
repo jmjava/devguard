@@ -78,8 +78,8 @@ pub use security_drift::{
     DriftFinding, DriftRules, SecurityDriftReport,
 };
 pub use security_scan::{
-    findings_from, format_security_scan_human, scan_security, Finding, FindingSeverity,
-    SecurityScanReport,
+    filter_findings, findings_from, format_security_findings_human, format_security_scan_human,
+    scan_security, Finding, FindingSeverity, SecurityFindingsReport, SecurityScanReport,
 };
 pub use security_updates::{
     format_security_updates_human, read_security_updates, scan_security_updates,

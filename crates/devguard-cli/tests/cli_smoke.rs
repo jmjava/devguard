@@ -3488,7 +3488,8 @@ fn security_help_keeps_existing_commands_and_adds_diff() {
         .stdout(predicate::str::contains("updates"))
         .stdout(predicate::str::contains("ssh-auth"))
         .stdout(predicate::str::contains("scan"))
-        .stdout(predicate::str::contains("diff"));
+        .stdout(predicate::str::contains("diff"))
+        .stdout(predicate::str::contains("findings"));
     devguard()
         .args(["security", "diff", "--help"])
         .assert()
@@ -3721,4 +3722,218 @@ fn drift_payload(
         ports_clean = ports_available && unparsed_rows == 0,
         units_clean = units_available,
     )
+}
+#[test]
+fn security_findings_help_documents_the_severity_filter() {
+    devguard()
+        .args(["security", "findings", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--severity"))
+        .stdout(predicate::str::contains("info"))
+        .stdout(predicate::str::contains("warning"))
+        .stdout(predicate::str::contains("critical"))
+        .stdout(predicate::str::contains("unknown"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("malware"));
+}
+
+#[test]
+fn security_findings_without_severity_prints_every_finding() {
+    let dir = tempdir().expect("tempdir");
+    let plain = dir.path().join("plain.toml");
+    let token = "token=ghp_SuperSecretTokenValue";
+    std::fs::write(&plain, token.as_bytes()).unwrap();
+    let mut file_perms = std::fs::metadata(&plain).unwrap().permissions();
+    file_perms.set_mode(0o640);
+    std::fs::set_permissions(&plain, file_perms).unwrap();
+    let config = allowlist_config(dir.path(), &[plain.display().to_string()]);
+    let (ufw, nft, ssh) = firewall_fixtures();
+    let (notifier, status, lists) = write_quiet_updates(dir.path());
+
+    let scan = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "security",
+            "scan",
+        ])
+        .output()
+        .expect("security scan");
+    let findings = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "security",
+            "findings",
+        ])
+        .output()
+        .expect("security findings");
+    assert_eq!(scan.status.code(), Some(0));
+    assert_eq!(findings.status.code(), Some(0));
+    let scan_value: serde_json::Value = serde_json::from_slice(&scan.stdout).expect("scan json");
+    let value: serde_json::Value = serde_json::from_slice(&findings.stdout).expect("findings json");
+    assert_eq!(value["command"], "security findings");
+    assert_eq!(value["data"]["severity"], serde_json::Value::Null);
+    assert_eq!(value["data"]["findings"], scan_value["data"]["findings"]);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["unfamiliar_name_is_malware"], false);
+    let stdout = String::from_utf8_lossy(&findings.stdout);
+    assert!(!stdout.contains(token));
+}
+
+#[test]
+fn security_findings_severity_warning_keeps_only_warnings() {
+    let dir = tempdir().expect("tempdir");
+    let plain = dir.path().join("plain.toml");
+    std::fs::write(&plain, b"mode-only\n").unwrap();
+    let mut perms = std::fs::metadata(&plain).unwrap().permissions();
+    perms.set_mode(0o640);
+    std::fs::set_permissions(&plain, perms).unwrap();
+    let config = allowlist_config(dir.path(), &[plain.display().to_string()]);
+    let (ufw, nft, ssh) = firewall_fixtures();
+    let notifier = dir.path().join("updates-available");
+    let status = dir.path().join("status");
+    let lists = dir.path().join("lists");
+    std::fs::write(&notifier, "0 updates can be applied immediately.\n").unwrap();
+    std::fs::write(
+        &status,
+        "Package: bash\nStatus: install ok installed\nArchitecture: amd64\nVersion: 1.0\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(&lists).unwrap();
+    std::fs::write(
+        lists.join("security.ubuntu.com_ubuntu_dists_resolute-security_main_binary-amd64_Packages"),
+        "Package: bash\nArchitecture: amd64\nVersion: 1.1\n",
+    )
+    .unwrap();
+    let output = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "security",
+            "findings",
+            "--severity",
+            "warning",
+        ])
+        .output()
+        .expect("security findings");
+    assert_eq!(output.status.code(), Some(2));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["command"], "security findings");
+    assert_eq!(value["data"]["severity"], "warning");
+    assert_eq!(value["data"]["clean"], true);
+    let findings = value["data"]["findings"].as_array().expect("findings");
+    assert!(!findings.is_empty());
+    assert!(findings.iter().all(|item| item["severity"] == "warning"));
+    assert!(findings.iter().any(|item| {
+        item["fact"]
+            .as_str()
+            .unwrap_or("")
+            .contains("bash 1.0 -> 1.1")
+    }));
+    assert!(findings.iter().all(|item| {
+        !item["fact"]
+            .as_str()
+            .unwrap_or("")
+            .contains("ufw status is active")
+    }));
+}
+
+#[test]
+fn security_findings_info_filter_keeps_a_missing_path_not_clean() {
+    let dir = tempdir().expect("tempdir");
+    let missing = dir.path().join("absent.toml");
+    let config = allowlist_config(dir.path(), &[missing.display().to_string()]);
+    let (ufw, nft, ssh) = firewall_fixtures();
+    let (notifier, status, lists) = write_quiet_updates(dir.path());
+    let output = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "security",
+            "findings",
+            "--severity",
+            "info",
+        ])
+        .output()
+        .expect("security findings");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("DevGuard security findings"));
+    assert!(stdout.contains("severity: info"));
+    assert!(stdout.contains("clean: no"));
+    assert!(stdout.contains("uses sudo: no"));
+    assert!(stdout.contains("unfamiliar name is malware: no"));
+    assert!(!stdout.contains("[unknown]"));
+    assert!(!stdout.contains("[warning]"));
+
+    let json = devguard()
+        .env("DEVGUARD_UFW_STATUS", &ufw)
+        .env("DEVGUARD_NFT_RULESET", &nft)
+        .env("DEVGUARD_SSHD_CONFIG", &ssh)
+        .env("DEVGUARD_UPDATE_NOTIFIER", &notifier)
+        .env("DEVGUARD_DPKG_STATUS", &status)
+        .env("DEVGUARD_APT_LISTS", &lists)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "security",
+            "findings",
+            "--severity",
+            "unknown",
+        ])
+        .output()
+        .expect("unknown findings");
+    assert_eq!(json.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&json.stdout).expect("json");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["severity"], "unknown");
+    let findings = value["data"]["findings"].as_array().expect("findings");
+    assert!(findings
+        .iter()
+        .any(|item| { item["source"] == "paths" && item["severity"] == "unknown" }));
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap_or("").contains("paths unavailable")));
+}
+
+#[test]
+fn security_findings_rejects_an_unknown_severity_name() {
+    devguard()
+        .args(["security", "findings", "--severity", "malware"])
+        .assert()
+        .code(64)
+        .stderr(predicate::str::contains("severity must be"));
 }

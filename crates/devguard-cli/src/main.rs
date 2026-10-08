@@ -35,7 +35,10 @@ use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
 };
 use devguard_core::runaway::{format_runaway_human, scan_runaways, RunawayThresholds};
-use devguard_core::security_scan::{format_security_scan_human, scan_security};
+use devguard_core::security_scan::{
+    filter_findings, format_security_findings_human, format_security_scan_human, scan_security,
+    FindingSeverity,
+};
 use devguard_core::security_updates::{format_security_updates_human, scan_security_updates};
 use devguard_core::sensors::{format_sensors_human, scan_sensors};
 use devguard_core::ssh_auth::{format_ssh_auth_human, scan_ssh_auth};
@@ -281,6 +284,19 @@ enum SecurityCommands {
         baseline_id: String,
         /// Current snapshot id.
         current_id: String,
+    },
+    /// The same findings as `security scan`, optionally kept to one severity.
+    ///
+    /// Prints the firewall, path, and security-update findings. `--severity`
+    /// keeps only `info`, `warning`, `critical`, or `unknown`. Omitting the
+    /// flag prints every finding. An unavailable source stays `unknown`, and
+    /// the result is not clean even when the filter hides that row. An
+    /// unfamiliar name is not proof of malware. Does not collect new sources,
+    /// use sudo, recurse, read file contents, change firewall rules, or run apt.
+    Findings {
+        /// Keep findings of this severity. Omit to print every finding.
+        #[arg(long, value_name = "LEVEL")]
+        severity: Option<String>,
     },
 }
 
@@ -943,6 +959,29 @@ fn run_security(
             baseline_id,
             current_id,
         } => cmd_security_diff::run(json, &remote_state_dir(paths)?, &baseline_id, &current_id),
+        SecurityCommands::Findings { severity } => {
+            let level = match severity.as_deref() {
+                Some(raw) => {
+                    Some(FindingSeverity::parse(raw).map_err(devguard_core::DevGuardError::Usage)?)
+                }
+                None => None,
+            };
+            let allowlist = sensitive_path_allowlist(paths)?;
+            let scan = scan_security(&allowlist);
+            let warnings = scan.warnings();
+            let report = filter_findings(&scan, level);
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("security findings", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("security findings", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_security_findings_human(&report));
+            }
+            Ok(report.exit_code())
+        }
     }
 }
 
