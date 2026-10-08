@@ -34,6 +34,7 @@ use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
 };
 use devguard_core::runaway::{format_runaway_human, scan_runaways, RunawayThresholds};
+use devguard_core::security_scan::{format_security_scan_human, scan_security};
 use devguard_core::security_updates::{format_security_updates_human, scan_security_updates};
 use devguard_core::sensors::{format_sensors_human, scan_sensors};
 use devguard_core::ssh_auth::{format_ssh_auth_human, scan_ssh_auth};
@@ -257,6 +258,15 @@ enum SecurityCommands {
     /// result is not clean. Does not use sudo, start or stop sshd, or change
     /// sshd config.
     SshAuth,
+    /// Findings from the firewall, path, and security-update checks.
+    ///
+    /// Calls those read-only checks and prints one finding per fact. The
+    /// severity is `info`, `warning`, `critical`, or `unknown`, and it is a
+    /// separate field from the fact. An unavailable source is `unknown`, and
+    /// the scan is not clean. An unfamiliar name is not proof of malware.
+    /// Does not use sudo, recurse, read file contents, change firewall rules,
+    /// or run apt.
+    Scan,
 }
 
 #[derive(Debug, Subcommand)]
@@ -895,6 +905,22 @@ fn run_security(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_ssh_auth_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        SecurityCommands::Scan => {
+            let allowlist = sensitive_path_allowlist(paths)?;
+            let report = scan_security(&allowlist);
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("security scan", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("security scan", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_security_scan_human(&report));
             }
             Ok(report.exit_code())
         }
