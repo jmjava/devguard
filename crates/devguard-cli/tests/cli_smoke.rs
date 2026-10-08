@@ -817,7 +817,8 @@ fn slm_help_keeps_host_energy_and_run() {
         .stdout(predicate::str::contains("host"))
         .stdout(predicate::str::contains("energy"))
         .stdout(predicate::str::contains("run"))
-        .stdout(predicate::str::contains("export"));
+        .stdout(predicate::str::contains("export"))
+        .stdout(predicate::str::contains("checklist"));
 }
 
 #[test]
@@ -953,3 +954,163 @@ fn slm_export_writes_csv_and_json_without_inventing_metrics() {
     assert!(csv.contains("llama-3.2-1b,Q4_K_M,llama.cpp"));
     assert!(!csv.contains("999"));
 }
+
+#[test]
+fn slm_checklist_prints_a_fixture_run_as_text_and_json() {
+    let dir = tempdir().expect("temp state");
+    let run_dir = dir.path().join("slm-runs");
+    std::fs::create_dir_all(&run_dir).unwrap();
+    std::fs::write(run_dir.join("fixture-run.json"), FIXTURE_RUN).unwrap();
+
+    let json = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "slm", "checklist", "--id", "fixture-run"])
+        .output()
+        .expect("slm checklist json");
+    assert!(json.status.success(), "{:?}", json);
+    let value: serde_json::Value = serde_json::from_slice(&json.stdout).expect("json");
+    assert_eq!(value["command"], "slm checklist");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["calls_ollama"], false);
+    let fields = value["data"]["fields"].as_array().expect("fields");
+    assert_eq!(fields.len(), 10);
+    assert_eq!(fields[0]["name"], "model");
+    assert_eq!(fields[0]["model_id"], "llama-3.2-1b");
+    assert_eq!(fields[0]["status"], "available");
+    assert_eq!(fields[4]["tokens_per_second"], 55.0);
+    assert_eq!(fields[6]["joules_per_token"], 8.0);
+    assert_eq!(fields[8]["task_score"], 0.5);
+    assert_eq!(fields[8]["task_name"], "gsm8k");
+    assert!(fields[3].get("ttft_p50_ms").is_none());
+
+    let human = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["slm", "checklist", "--id", "fixture-run"])
+        .output()
+        .expect("slm checklist text");
+    assert!(human.status.success(), "{:?}", human);
+    let stdout = String::from_utf8_lossy(&human.stdout);
+    assert!(stdout.contains("DevGuard slm checklist"));
+    assert!(stdout.contains("calls Ollama: no"));
+    assert!(stdout.contains("llama-3.2-1b"));
+    assert!(stdout.contains("batch 1"));
+    assert!(stdout.contains("ttft 120.5 ms"));
+    assert!(stdout.contains("55 tok/s"));
+    assert!(stdout.contains("8 J/token"));
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn slm_checklist_missing_field_is_unavailable() {
+    let dir = tempdir().expect("temp state");
+    let run_dir = dir.path().join("slm-runs");
+    std::fs::create_dir_all(&run_dir).unwrap();
+    std::fs::write(
+        run_dir.join("sparse-run.json"),
+        r#"{
+          "schema_version": 1,
+          "run_id": "sparse-run",
+          "started_at": "2026-10-07T20:00:00Z",
+          "measurement_plane": "gpu_rail",
+          "system": { "status": "unavailable" }
+        }"#,
+    )
+    .unwrap();
+
+    let output = devguard()
+        .env("DEVGUARD_STATE_DIR", dir.path())
+        .args(["--json", "slm", "checklist", "--id", "sparse-run"])
+        .output()
+        .expect("sparse checklist");
+    assert_eq!(output.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    let fields = value["data"]["fields"].as_array().expect("fields");
+    assert_eq!(fields.len(), 10);
+    let model = fields
+        .iter()
+        .find(|field| field["name"] == "model")
+        .unwrap();
+    assert_eq!(model["status"], "unavailable");
+    assert_eq!(model["value"], "");
+    assert!(model.get("model_id").is_none());
+    assert!(model.get("joules_per_token").is_none());
+    let task = fields
+        .iter()
+        .find(|field| field["name"] == "task_score_and_benchmark")
+        .unwrap();
+    assert_eq!(task["status"], "unavailable");
+    assert!(task.get("task_score").is_none());
+    let timestamp = fields
+        .iter()
+        .find(|field| field["name"] == "timestamp")
+        .unwrap();
+    assert_eq!(timestamp["status"], "available");
+    assert_eq!(value["data"]["calls_ollama"], false);
+}
+
+const FIXTURE_RUN: &str = r#"{
+  "schema_version": 1,
+  "run_id": "fixture-run",
+  "started_at": "2026-10-07T20:00:00Z",
+  "ended_at": "2026-10-07T20:00:10Z",
+  "measurement_plane": "gpu_rail",
+  "experiment": {
+    "model_id": "llama-3.2-1b",
+    "parameter_count": 1000000000,
+    "quantization": "Q4_K_M",
+    "backend": "llama.cpp",
+    "batch_size": 1,
+    "context_length": null,
+    "prompt_tokens": 32,
+    "output_tokens": 128,
+    "git_commit": "abc123",
+    "notes": "cool-down 10s"
+  },
+  "latency": {
+    "ttft_ms": 120.5,
+    "ttft_p50_ms": null,
+    "ttft_p99_ms": 240.0,
+    "tpot_ms": 18.0,
+    "tpot_p50_ms": null,
+    "tpot_p99_ms": 40.0,
+    "e2e_latency_ms": null,
+    "tokens_per_second": 55.0,
+    "throughput_kind": "decode"
+  },
+  "quality": {
+    "task_name": "gsm8k",
+    "task_metric": "exact_match",
+    "task_score": 0.5,
+    "higher_is_better": null
+  },
+  "energy": {
+    "mean_gpu_power_w": 80.0,
+    "energy_gpu_approx_j": null,
+    "energy_wall_j": 900.0,
+    "joules_per_token": 8.0,
+    "tokens_per_joule": null,
+    "throughput_per_watt": null
+  },
+  "system": {
+    "status": "partial",
+    "host": {
+      "cpu_percent": null,
+      "memory_used_bytes": 8000000000,
+      "memory_total_bytes": 16000000000,
+      "swap_used_bytes": null
+    },
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA GeForce RTX 3060",
+        "driver_version": "555.42",
+        "utilization_percent": null,
+        "memory_used_bytes": 5000000000,
+        "memory_total_bytes": null,
+        "temperature_c": 72.0,
+        "power_draw_w": null,
+        "power_limit_w": null
+      }
+    ]
+  }
+}"#;
