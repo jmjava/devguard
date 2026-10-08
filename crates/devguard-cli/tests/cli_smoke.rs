@@ -27,7 +27,8 @@ fn help_lists_core_commands() {
         .stdout(predicate::str::contains("slm"))
         .stdout(predicate::str::contains("dev"))
         .stdout(predicate::str::contains("security"))
-        .stdout(predicate::str::contains("snapshot"));
+        .stdout(predicate::str::contains("snapshot"))
+        .stdout(predicate::str::contains("backup"));
 }
 
 #[test]
@@ -3936,4 +3937,222 @@ fn security_findings_rejects_an_unknown_severity_name() {
         .assert()
         .code(64)
         .stderr(predicate::str::contains("severity must be"));
+}
+
+#[test]
+fn backup_plan_help_documents_the_dry_run() {
+    devguard()
+        .args(["backup", "plan", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unreadable"))
+        .stdout(predicate::str::contains("huge"))
+        .stdout(predicate::str::contains("whole disk"))
+        .stdout(predicate::str::contains("repository"))
+        .stdout(predicate::str::contains("sudo"))
+        .stdout(predicate::str::contains("restic"))
+        .stdout(predicate::str::contains("password"));
+}
+
+#[test]
+fn backup_help_lists_plan() {
+    let output = devguard()
+        .args(["backup", "--help"])
+        .output()
+        .expect("backup help");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("plan"));
+    assert!(!stdout.contains("restore"));
+    assert!(!stdout.contains("verify"));
+}
+
+fn write_backup_config(path: &std::path::Path, body: &str) {
+    std::fs::write(path, body).unwrap();
+}
+
+#[test]
+fn backup_plan_json_lists_includes_and_huge_model_warnings() {
+    let dir = tempdir().unwrap();
+    let include = dir.path().join("proj");
+    std::fs::create_dir_all(include.join("models")).unwrap();
+    let secret = "password=hunter2-backup-plan";
+    std::fs::write(include.join("weights.gguf"), secret.as_bytes()).unwrap();
+    std::fs::write(include.join("notes.txt"), b"keep").unwrap();
+    let repo = dir.path().join("repo");
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        &format!(
+            "schema_version = 1\n\n[backup]\nengine = \"restic\"\nrepository = {repo:?}\ninclude = [{include:?}]\nexclude = [\"**/*.gguf\", \"**/models/**\"]\n",
+            repo = repo.display().to_string(),
+            include = include.display().to_string(),
+        ),
+    );
+    let output = devguard()
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "backup",
+            "plan",
+        ])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(2), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains(secret), "{stdout}");
+    assert!(!repo.exists());
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["command"], "backup plan");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["dry_run"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["whole_disk"], false);
+    assert_eq!(value["data"]["runs_engine"], false);
+    assert_eq!(value["data"]["engine_selected"], false);
+    assert_eq!(value["data"]["writes_snapshot"], false);
+    assert_eq!(value["data"]["creates_repository"], false);
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["calls_systemctl"], false);
+    assert_eq!(value["data"]["includes"][0]["status"], "available");
+    assert!(value["data"]["excludes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str() == Some("**/*.gguf")));
+    let warnings = value["data"]["huge_model_warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|item| item.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(warnings.contains("weights.gguf"), "{warnings}");
+    assert!(warnings.contains("models"), "{warnings}");
+}
+
+#[test]
+fn backup_plan_empty_include_is_not_a_whole_disk_plan() {
+    let dir = tempdir().unwrap();
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        "schema_version = 1\n\n[backup]\nengine = \"restic\"\nrepository = \"/tmp/devguard-backup-plan-missing-repo\"\ninclude = []\nexclude = []\n",
+    );
+    let output = devguard()
+        .args(["--config", config.to_str().unwrap(), "backup", "plan"])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("not a plan of the whole disk"));
+    assert!(stdout.contains("whole disk: no"));
+    assert!(stdout.contains("clean: no"));
+    assert!(stdout.contains("Includes"));
+    assert!(stdout.contains("Excludes"));
+    assert!(stdout.contains("Unreadable"));
+    assert!(stdout.contains("Huge-model warnings"));
+}
+
+#[test]
+fn backup_plan_missing_repository_is_unavailable() {
+    let dir = tempdir().unwrap();
+    let include = dir.path().join("docs");
+    std::fs::create_dir(&include).unwrap();
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        &format!(
+            "schema_version = 1\n\n[backup]\nengine = \"restic\"\ninclude = [{include:?}]\nexclude = []\n",
+            include = include.display().to_string(),
+        ),
+    );
+    let output = devguard()
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--json",
+            "backup",
+            "plan",
+        ])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["data"]["repository_status"], "unavailable");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["whole_disk"], false);
+    assert_eq!(value["data"]["runs_engine"], false);
+}
+
+#[test]
+fn backup_plan_missing_include_is_unreadable() {
+    let dir = tempdir().unwrap();
+    let missing = dir.path().join("absent");
+    let repo = dir.path().join("repo");
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        &format!(
+            "schema_version = 1\n\n[backup]\nengine = \"restic\"\nrepository = {repo:?}\ninclude = [{missing:?}]\nexclude = []\n",
+            repo = repo.display().to_string(),
+            missing = missing.display().to_string(),
+        ),
+    );
+    let output = devguard()
+        .args(["--config", config.to_str().unwrap(), "backup", "plan"])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(3), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("missing"));
+    assert!(stdout.contains("clean: no"));
+    assert!(!repo.exists());
+}
+
+#[test]
+fn backup_plan_redacts_a_repository_password_and_does_not_call_engines() {
+    let dir = tempdir().unwrap();
+    let include = dir.path().join("docs");
+    std::fs::create_dir(&include).unwrap();
+    std::fs::write(include.join("notes.txt"), b"keep").unwrap();
+    let bin = dir.path().join("bin");
+    std::fs::create_dir(&bin).unwrap();
+    let marker = dir.path().join("engine-called");
+    for name in ["restic", "rustic", "systemctl", "sudo"] {
+        let path = bin.join(name);
+        std::fs::write(
+            &path,
+            "#!/bin/sh\nprintf '%s\\n' \"$0\" >> \"$DEVGUARD_CALLED_STUB\"\nexit 0\n",
+        )
+        .unwrap();
+        let mut perms = std::fs::metadata(&path).unwrap().permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&path, perms).unwrap();
+    }
+    let secret = "s3cret";
+    let repository = format!("https://user:{secret}@backup.example/repo");
+    let config = dir.path().join("config.toml");
+    write_backup_config(
+        &config,
+        &format!(
+            "schema_version = 1\n\n[backup]\nengine = \"rustic\"\nrepository = {repository:?}\ninclude = [{include:?}]\nexclude = []\n",
+            include = include.display().to_string(),
+        ),
+    );
+    let path = std::env::var("PATH").unwrap_or_default();
+    let output = devguard()
+        .env("PATH", format!("{}:{}", bin.display(), path))
+        .env("DEVGUARD_CALLED_STUB", &marker)
+        .args(["--config", config.to_str().unwrap(), "backup", "plan"])
+        .output()
+        .expect("backup plan");
+    assert_eq!(output.status.code(), Some(0), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.contains(secret), "{stdout}");
+    assert!(stdout.contains("[REDACTED]"));
+    assert!(stdout.contains("engine selected: no"));
+    assert!(stdout.contains("runs engine: no"));
+    assert!(!marker.exists(), "backup plan invoked a stub binary");
 }
