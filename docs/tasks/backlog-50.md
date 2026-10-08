@@ -63,7 +63,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 
 ## E. Security Sentinel (M3) — 6
 
-- [ ] #devguard #m3 Port + service drift vs baseline → findings (`info|warning|critical|unknown`)
+- [x] #devguard #m3 Port + service drift vs baseline → findings (`info|warning|critical|unknown`)
 - [x] #devguard #m3 Firewall status (`ufw`/nftables) + readable SSH exposure/config checks
 - [x] #devguard #m3 SSH login / failed-auth adapter (no credentials or full journal dumps)
 - [x] #devguard #m3 OS security-update status via Ubuntu interfaces (never auto-install)

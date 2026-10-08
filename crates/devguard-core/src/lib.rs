@@ -26,6 +26,7 @@ pub mod redact;
 pub mod remote;
 pub mod runaway;
 pub mod schedule;
+pub mod security_drift;
 pub mod security_scan;
 pub mod security_updates;
 pub mod sensors;
@@ -75,6 +76,10 @@ pub use runaway::{
 };
 pub use schedule::{
     format_schedule_dry_run_human, schedule_dry_run, ScanCalendar, ScheduleDryRunReport,
+};
+pub use security_drift::{
+    diff_stored_payloads, diff_stored_payloads_with_rules, format_security_drift_human,
+    DriftFinding, DriftRules, SecurityDriftReport,
 };
 pub use security_scan::{
     findings_from, format_security_scan_human, scan_security, Finding, FindingSeverity,
