@@ -15,6 +15,7 @@ pub mod redact;
 pub mod remote;
 pub mod runaway;
 pub mod slm;
+pub mod slm_export;
 pub mod slm_run;
 pub mod thresholds;
 pub mod watch;
@@ -41,6 +42,7 @@ pub use slm::{
     LatencyMetrics, MeasurementPlane, QualityMetrics, SlmRunRecord, SystemObservation,
     SLM_RUN_SCHEMA_VERSION,
 };
+pub use slm_export::{export_paper_table, paper_row, PaperRow, WrittenExport, PAPER_COLUMNS};
 pub use thresholds::{evaluate_thresholds, ThresholdSample, ThresholdWarning, RULES_OF_THUMB};
 pub use watch::{
     format_interval, parse_watch_interval, refresh, render_watch, WatchSample, MAX_WATCH_INTERVAL,

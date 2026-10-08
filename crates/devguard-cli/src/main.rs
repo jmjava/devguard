@@ -1,6 +1,7 @@
 //! DevGuard CLI entrypoint.
 
 mod cmd_slm_energy;
+mod cmd_slm_export;
 mod cmd_slm_host;
 mod cmd_slm_run;
 mod output;
@@ -72,8 +73,8 @@ enum Commands {
         #[command(subcommand)]
         action: RemoteCommands,
     },
-    /// SLM host sample, energy from supplied samples, and run brackets.
-    /// Host reads /proc. Energy does not call nvidia-smi. Run does not call Ollama or bind a port.
+    /// SLM host sample, energy from supplied samples, run brackets, and paper export.
+    /// Host reads /proc. Energy does not call nvidia-smi. Run and export do not call Ollama or bind a port.
     Slm {
         #[command(subcommand)]
         action: SlmCommands,
@@ -91,6 +92,8 @@ enum SlmCommands {
     Energy(cmd_slm_energy::SlmCommands),
     #[command(flatten)]
     Run(cmd_slm_run::SlmCommands),
+    #[command(flatten)]
+    Export(cmd_slm_export::SlmCommands),
 }
 
 #[derive(Debug, Subcommand)]
@@ -249,6 +252,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
         Commands::Slm { action } => match action {
             SlmCommands::Energy(action) => cmd_slm_energy::run(cli.json, action),
             SlmCommands::Run(action) => cmd_slm_run::run(cli.json, paths, action),
+            SlmCommands::Export(action) => cmd_slm_export::run(cli.json, paths, action),
         },
         Commands::Config {
             action: ConfigCommands::Init { force },

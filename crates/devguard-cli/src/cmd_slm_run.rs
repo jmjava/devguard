@@ -139,7 +139,7 @@ struct SlmRunView<'a> {
     binds_port: bool,
 }
 
-fn state_dir(paths: &DevGuardPaths) -> Result<PathBuf, DevGuardError> {
+pub(crate) fn state_dir(paths: &DevGuardPaths) -> Result<PathBuf, DevGuardError> {
     match std::env::var("DEVGUARD_STATE_DIR") {
         Ok(value) if !value.is_empty() => {
             let path = PathBuf::from(&value);

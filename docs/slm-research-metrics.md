@@ -99,7 +99,7 @@ For each published configuration row, retain at least:
 | `slm host` | Host companion sample: CPU %, RAM/swap, disk free bytes, RFC3339 |
 | `health watch` | Time series during an experiment (bounded interval) |
 | `slm run begin/end` *(planned)* | Bracket a harness run; sample GPU/host; merge annotations; write JSONL/JSON under state dir |
-| `slm export` *(planned)* | Emit a paper-oriented CSV/JSON table from stored runs |
+| `slm export` | Emit a paper CSV and JSON table from stored runs. A field the run does not store stays empty |
 
 ## Key references
 

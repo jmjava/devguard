@@ -608,3 +608,163 @@ fn slm_host_human_prints_the_sample_header() {
     let code = output.status.code();
     assert!(code == Some(0) || code == Some(3), "{stdout}");
 }
+
+#[test]
+fn slm_export_help_does_not_call_ollama_or_nvidia_smi() {
+    devguard()
+        .args(["slm", "export", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("csv"))
+        .stdout(predicate::str::contains("json"))
+        .stdout(predicate::str::contains("empty"))
+        .stdout(predicate::str::contains("Ollama"))
+        .stdout(predicate::str::contains("port"))
+        .stdout(predicate::str::contains("nvidia-smi"));
+}
+
+#[test]
+fn slm_help_keeps_host_energy_and_run() {
+    devguard()
+        .args(["slm", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("host"))
+        .stdout(predicate::str::contains("energy"))
+        .stdout(predicate::str::contains("run"))
+        .stdout(predicate::str::contains("export"));
+}
+
+#[test]
+fn slm_export_writes_csv_and_json_without_inventing_metrics() {
+    let state = tempdir().unwrap();
+    let out = tempdir().unwrap();
+    let runs = state.path().join("slm-runs");
+    std::fs::create_dir_all(&runs).unwrap();
+    std::fs::write(
+        runs.join("filled.json"),
+        r#"{
+          "schema_version": 1,
+          "run_id": "run-filled",
+          "started_at": "2026-10-07T20:00:00Z",
+          "measurement_plane": "gpu_rail",
+          "experiment": {
+            "model_id": "llama-3.2-1b",
+            "quantization": "Q4_K_M",
+            "backend": "llama.cpp",
+            "batch_size": 1,
+            "prompt_tokens": 32,
+            "output_tokens": 128
+          },
+          "latency": { "ttft_ms": 120.5, "tokens_per_second": 55.0 },
+          "quality": { "task_name": "gsm8k", "task_score": 0.42 },
+          "energy": { "mean_gpu_power_w": 80.0, "joules_per_token": 6.25 },
+          "system": {
+            "status": "partial",
+            "gpus": [{
+              "index": 0,
+              "name": "NVIDIA GeForce RTX 3060",
+              "memory_used_bytes": 4096,
+              "temperature_c": 43.0,
+              "power_draw_w": 999.0
+            }]
+          }
+        }"#,
+    )
+    .unwrap();
+    std::fs::write(
+        runs.join("bare.json"),
+        r#"{
+          "schema_version": 1,
+          "run_id": "run-bare",
+          "started_at": "2026-10-07T21:00:00Z",
+          "measurement_plane": "gpu_rail",
+          "duration_s": 10.0,
+          "system": {
+            "status": "unavailable",
+            "gpus": [{ "index": 0, "power_draw_w": 80.0 }]
+          }
+        }"#,
+    )
+    .unwrap();
+
+    let output = devguard()
+        .env("DEVGUARD_STATE_DIR", state.path())
+        .args([
+            "--json",
+            "slm",
+            "export",
+            "--out",
+            out.path().to_str().unwrap(),
+        ])
+        .output()
+        .expect("slm export");
+    assert!(
+        output.status.success(),
+        "stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(envelope["command"], "slm export");
+    assert_eq!(envelope["data"]["rows"], 2);
+    assert_eq!(envelope["data"]["calls_ollama"], false);
+    assert_eq!(envelope["data"]["binds_port"], false);
+    assert_eq!(envelope["data"]["calls_nvidia_smi"], false);
+
+    let csv = std::fs::read_to_string(out.path().join("slm-export.csv")).unwrap();
+    let table: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(out.path().join("slm-export.json")).unwrap())
+            .unwrap();
+    assert!(csv.starts_with(
+        "model,quantization,backend,hardware,prompt length,generation length,batch,TTFT,TPOT,tokens/s,peak VRAM,mean GPU power,J/token,temperature,task score,benchmark name,timestamp\n"
+    ));
+    let filled = &table["rows"][0];
+    assert_eq!(filled["model"], "llama-3.2-1b");
+    assert_eq!(filled["quantization"], "Q4_K_M");
+    assert_eq!(filled["backend"], "llama.cpp");
+    assert_eq!(filled["hardware"], "NVIDIA GeForce RTX 3060");
+    assert_eq!(filled["prompt length"], "32");
+    assert_eq!(filled["generation length"], "128");
+    assert_eq!(filled["batch"], "1");
+    assert_eq!(filled["TTFT"], "120.5");
+    assert_eq!(filled["TPOT"], "");
+    assert_eq!(filled["tokens/s"], "55");
+    assert_eq!(filled["peak VRAM"], "4096");
+    assert_eq!(filled["mean GPU power"], "80");
+    assert_eq!(filled["J/token"], "6.25");
+    assert_eq!(filled["temperature"], "43");
+    assert_eq!(filled["task score"], "0.42");
+    assert_eq!(filled["benchmark name"], "gsm8k");
+    assert!(filled["timestamp"]
+        .as_str()
+        .unwrap()
+        .contains("2026-10-07T20:00:00"));
+
+    let bare = &table["rows"][1];
+    for key in [
+        "model",
+        "quantization",
+        "backend",
+        "hardware",
+        "prompt length",
+        "generation length",
+        "batch",
+        "TTFT",
+        "TPOT",
+        "tokens/s",
+        "peak VRAM",
+        "mean GPU power",
+        "J/token",
+        "temperature",
+        "task score",
+        "benchmark name",
+    ] {
+        assert_eq!(bare[key], "", "{key}");
+    }
+    assert!(bare["timestamp"]
+        .as_str()
+        .unwrap()
+        .contains("2026-10-07T21:00:00"));
+    assert!(csv.contains("llama-3.2-1b,Q4_K_M,llama.cpp"));
+    assert!(!csv.contains("999"));
+}
