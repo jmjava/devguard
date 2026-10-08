@@ -4131,8 +4131,8 @@ fn backup_plan_redacts_a_repository_password_and_does_not_call_engines() {
         perms.set_mode(0o755);
         std::fs::set_permissions(&path, perms).unwrap();
     }
-    let secret = "s3cret-password";
-    let repository = format!("sftp://alice:{secret}@backup.example/repo");
+    let secret = "s3cret";
+    let repository = format!("https://user:{secret}@backup.example/repo");
     let config = dir.path().join("config.toml");
     write_backup_config(
         &config,

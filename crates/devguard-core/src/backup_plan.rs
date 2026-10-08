@@ -857,8 +857,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let include = dir.path().join("docs");
         fs::create_dir(&include).unwrap();
-        let secret = "s3cret-password";
-        let repository = format!("sftp://alice:{secret}@backup.example/repo");
+        let secret = "s3cret";
+        let repository = format!("https://user:{secret}@backup.example/repo");
         let backup = sample_config(include.to_str().unwrap(), Some(&repository), &[]);
         let report = plan_backup(&backup);
         let human = format_backup_plan_human(&report);
