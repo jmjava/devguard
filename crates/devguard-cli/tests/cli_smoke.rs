@@ -599,6 +599,102 @@ fn slm_host_json_reports_fields_and_never_says_healthy() {
 }
 
 #[test]
+fn health_sensors_help_documents_hwmon_and_no_fan_curve_change() {
+    devguard()
+        .args(["health", "sensors", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("hwmon"))
+        .stdout(predicate::str::contains("unavailable"))
+        .stdout(predicate::str::contains("fan curve"))
+        .stdout(predicate::str::contains("sudo"));
+}
+
+#[test]
+fn health_sensors_json_uses_a_fixture_tree() {
+    let dir = tempdir().expect("tempdir");
+    let core = dir.path().join("hwmon4");
+    std::fs::create_dir_all(&core).unwrap();
+    std::fs::write(core.join("name"), "coretemp\n").unwrap();
+    std::fs::write(core.join("temp1_input"), "54000\n").unwrap();
+    std::fs::write(core.join("temp1_label"), "Package id 0\n").unwrap();
+    std::fs::write(core.join("temp2_input"), "45000\n").unwrap();
+    std::fs::write(core.join("temp2_label"), "Core 0\n").unwrap();
+    let board = dir.path().join("hwmon0");
+    std::fs::create_dir_all(&board).unwrap();
+    std::fs::write(board.join("name"), "acpitz\n").unwrap();
+    std::fs::write(board.join("temp1_input"), "27800\n").unwrap();
+    let fan = dir.path().join("hwmon3");
+    std::fs::create_dir_all(&fan).unwrap();
+    std::fs::write(fan.join("name"), "nct6798\n").unwrap();
+    std::fs::write(fan.join("fan1_input"), "820\n").unwrap();
+    std::fs::write(fan.join("fan1_label"), "cpu_fan\n").unwrap();
+
+    let output = devguard()
+        .env("DEVGUARD_HWMON_ROOT", dir.path())
+        .env("DEVGUARD_SENSORS_BIN", dir.path().join("missing-sensors"))
+        .args(["--json", "health", "sensors"])
+        .output()
+        .expect("health sensors");
+    assert_eq!(output.status.code(), Some(0));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "health sensors");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["clean"], true);
+    assert_eq!(value["data"]["status"], "available");
+    assert_eq!(value["data"]["uses_sudo"], false);
+    assert_eq!(value["data"]["loads_modules"], false);
+    assert_eq!(value["data"]["changes_fan_curve"], false);
+    assert_eq!(value["data"]["sensors"]["status"], "unavailable");
+    assert_eq!(value["data"]["package"][0]["label"], "Package id 0");
+    assert_eq!(value["data"]["package"][0]["celsius"], 54.0);
+    assert_eq!(value["data"]["cpu"][0]["label"], "Core 0");
+    assert_eq!(value["data"]["cpu"][0]["celsius"], 45.0);
+    assert_eq!(value["data"]["board"][0]["chip"], "acpitz");
+    assert_eq!(value["data"]["board"][0]["celsius"], 27.8);
+    assert_eq!(value["data"]["fans"][0]["label"], "cpu_fan");
+    assert_eq!(value["data"]["fans"][0]["rpm"], 820);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(!stdout.to_ascii_lowercase().contains("healthy"));
+}
+
+#[test]
+fn health_sensors_without_hwmon_files_is_unavailable() {
+    let dir = tempdir().expect("tempdir");
+    let output = devguard()
+        .env("DEVGUARD_HWMON_ROOT", dir.path())
+        .env("DEVGUARD_SENSORS_BIN", dir.path().join("missing-sensors"))
+        .args(["--json", "health", "sensors"])
+        .output()
+        .expect("health sensors");
+    assert_eq!(output.status.code(), Some(3));
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).expect("json");
+    assert_eq!(value["command"], "health sensors");
+    assert_eq!(value["data"]["clean"], false);
+    assert_eq!(value["data"]["status"], "unavailable");
+    assert_eq!(value["data"]["sensors"]["status"], "unavailable");
+    assert_eq!(value["data"]["hwmon"]["status"], "unavailable");
+    assert!(value["data"]["package"].as_array().unwrap().is_empty());
+    assert!(value["data"]["fans"].as_array().unwrap().is_empty());
+    assert!(value["warnings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item.as_str().unwrap_or("").contains("hwmon")));
+}
+
+#[test]
+fn health_fan_help_remains() {
+    devguard()
+        .args(["health", "fan", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("fan curve"))
+        .stdout(predicate::str::contains("unavailable"));
+}
+
+#[test]
 fn slm_host_human_prints_the_sample_header() {
     let output = devguard().args(["slm", "host"]).output().expect("slm host");
     let stdout = String::from_utf8_lossy(&output.stdout);

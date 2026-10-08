@@ -66,6 +66,7 @@ devguard snapshot diff <BASELINE_ID> <CURRENT_ID> [--json]
 
 devguard health scan [--json]
 devguard health fan [--json]            # observations and hypotheses; missing sensors or nvidia-smi is unavailable
+devguard health sensors [--json]        # package, CPU, and board temperatures plus fan RPM from hwmon files
 devguard health watch --interval 5s     # TUI, exits cleanly on Ctrl+C
 devguard gpu scan [--json]              # one-shot nvidia-smi reading; a missing tool or field is unavailable
 

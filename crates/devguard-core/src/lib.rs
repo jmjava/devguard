@@ -14,6 +14,7 @@ pub mod paths;
 pub mod redact;
 pub mod remote;
 pub mod runaway;
+pub mod sensors;
 pub mod slm;
 pub mod slm_export;
 pub mod slm_run;
@@ -37,6 +38,7 @@ pub use remote::{
 pub use runaway::{
     format_runaway_human, scan_runaways, RunawayProcess, RunawayReport, RunawayThresholds,
 };
+pub use sensors::{format_sensors_human, read_hwmon_sensors, scan_sensors, SensorsReport};
 pub use slm::{
     academic_metric_checklist, EnergyMetrics, ExperimentMeta, GpuSample, HostSample,
     LatencyMetrics, MeasurementPlane, QualityMetrics, SlmRunRecord, SystemObservation,
