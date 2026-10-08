@@ -96,6 +96,27 @@ fn gpu_scan_human_states_sudo_and_modules_are_off() {
 }
 
 #[test]
+fn health_runaway_json_is_one_document() {
+    let output = devguard()
+        .args(["--json", "health", "runaway"])
+        .output()
+        .expect("health runaway");
+    let code = output.status.code();
+    assert!(
+        code == Some(0) || code == Some(2),
+        "stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let value: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(value["schema_version"], 1);
+    assert_eq!(value["command"], "health runaway");
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["stops_processes"], false);
+    assert!(value["data"]["processes"].is_array());
+}
+
+#[test]
 fn health_help_documents_the_fan_command() {
     devguard()
         .args(["health", "--help"])

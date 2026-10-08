@@ -16,6 +16,7 @@ use devguard_core::json::JsonEnvelope;
 use devguard_core::remote::{
     collect_status, format_remote_status, format_tunnel, tunnel_down, tunnel_up,
 };
+use devguard_core::runaway::{format_runaway_human, scan_runaways, RunawayThresholds};
 use devguard_core::watch::parse_watch_interval;
 use devguard_core::DevGuardPaths;
 use tracing_subscriber::EnvFilter;
@@ -82,6 +83,10 @@ enum HealthCommands {
     /// Does not use sudo, write a fan curve, load a kernel module, or change BIOS.
     /// Missing `sensors` or `nvidia-smi` is unavailable, never a clean result.
     Fan,
+    /// Find a process at 6+ cores for 10 minutes, or holding 12+ GiB RSS.
+    ///
+    /// Samples CPU for one second. Prints a stop hint and does not send a signal.
+    Runaway,
     /// Refresh the fan diagnostic in a terminal. Exits on Ctrl+C.
     ///
     /// The interval is bounded to 1s..300s (`5s`, `1m`, `1000ms`). This command
@@ -336,6 +341,19 @@ fn run_health(
                 emit_human(&format_fan_human(&report));
             }
             Ok(report.exit_code())
+        }
+        HealthCommands::Runaway => {
+            let report = scan_runaways(&RunawayThresholds::hook_defaults())?;
+            if json {
+                emit_json(&JsonEnvelope::success("health runaway", &report))?;
+            } else {
+                emit_human(&format_runaway_human(&report));
+            }
+            if report.has_findings() {
+                Ok(ExitCode::Findings)
+            } else {
+                Ok(ExitCode::Success)
+            }
         }
         HealthCommands::Watch { interval } => {
             let interval = parse_watch_interval(&interval)?;
