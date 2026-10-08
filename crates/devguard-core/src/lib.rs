@@ -3,6 +3,7 @@
 pub mod collector;
 pub mod config;
 pub mod doctor;
+pub mod energy;
 pub mod error;
 pub mod exit;
 pub mod fan;
