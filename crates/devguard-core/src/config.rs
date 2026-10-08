@@ -140,19 +140,11 @@ impl Default for DatabaseConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SnapshotConfig {
+    /// Omitted key: empty allowlist. That hashes nothing.
     #[serde(default)]
     pub config_hash_allowlist: Vec<String>,
-}
-
-impl Default for SnapshotConfig {
-    fn default() -> Self {
-        // An omitted key is an empty allowlist. That hashes nothing.
-        Self {
-            config_hash_allowlist: Vec::new(),
-        }
-    }
 }
 
 /// Health and GPU threshold hints (rules of thumb, not hardware guarantees).
