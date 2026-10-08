@@ -82,7 +82,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 ## G. Developer Workflow Guardian (M5) — 4
 
 - [ ] #devguard #m5 `dev env` — compiler/SDK/package-manager inventory (reproducibility report, not bit-identical)
-- [ ] #devguard #m5 `dev repos scan` — dirty/untracked/branch/upstream/unpushed; safe git; no network by default
+- [x] #devguard #m5 `dev repos scan` — dirty/untracked/branch/upstream/unpushed; safe git; no network by default
 - [ ] #devguard #m5 Opt-in `dev deps audit` (cargo-audit/npm/pip/maven); network scans explicit only
 - [ ] #devguard #m5 Sanitize output/logs so token-like fixture strings never appear
 

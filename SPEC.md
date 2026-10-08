@@ -86,7 +86,7 @@ devguard backup restore --snapshot ID --target PATH --dry-run
 # actual restore requires --apply and confirmation; refuse dangerous destinations
 
 devguard dev env [--json]
-devguard dev repos <PATH> [--json]   # branch, upstream, dirty, untracked, unpushed; no fetch or push
+devguard dev repos scan [PATH...] [--json]
 devguard dev deps audit [--json]        # opt-in tooling integrations
 ```
 
