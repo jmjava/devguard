@@ -14,6 +14,7 @@ pub mod redact;
 pub mod remote;
 pub mod runaway;
 pub mod slm;
+pub mod slm_run;
 pub mod watch;
 
 pub use collector::{Collection, CollectionStatus, Collector};
