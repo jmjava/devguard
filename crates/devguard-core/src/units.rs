@@ -21,6 +21,7 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 
 use crate::exit::ExitCode;
+use crate::redact::redact_text;
 
 const TOOL_TIMEOUT: Duration = Duration::from_secs(8);
 const MAX_CAPTURE_BYTES: usize = 1024 * 1024;
@@ -284,7 +285,7 @@ fn finish_unit(fields: &BTreeMap<String, String>) -> Option<UnitRecord> {
     }
     let failed = active == "failed" || sub == "failed";
     Some(UnitRecord {
-        name,
+        name: redact_text(&name),
         enabled,
         active,
         failed,
@@ -554,5 +555,22 @@ UnitFileState=enabled
             .iter()
             .find(|unit| unit.name == name)
             .unwrap_or_else(|| panic!("missing {name}"))
+    }
+
+    #[test]
+    fn unit_name_from_systemctl_hides_token_shapes() {
+        let secret = format!("ghp_{}", "a".repeat(36));
+        let listing =
+            format!("Id={secret}\nActiveState=active\nSubState=running\nUnitFileState=enabled\n");
+        let report = parse_systemctl_listing(&listing);
+        let human = format_units_human(&report);
+        let json = serde_json::to_string(&report).expect("json");
+        assert!(
+            !human.contains(&secret),
+            "units report kept a fixture secret"
+        );
+        assert!(!json.contains(&secret), "units json kept a fixture secret");
+        assert!(human.contains("[REDACTED]"));
+        assert!(json.contains("[REDACTED]"));
     }
 }

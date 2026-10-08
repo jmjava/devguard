@@ -782,7 +782,7 @@ fn parse_nvidia_line(line: &str) -> Option<GpuReading> {
         return None;
     }
     Some(GpuReading {
-        name,
+        name: redact_text(&name),
         temperature_c: parse_metric(parts[split_at]),
         fan_percent: parse_metric(parts[split_at + 1]),
         utilization_percent: parse_metric(parts[split_at + 2]),
@@ -1239,5 +1239,34 @@ mod tests {
             cpu_count_from_cpuinfo("processor\t: 0\nprocessor\t: 1\n"),
             2
         );
+    }
+
+    #[test]
+    fn fan_report_hides_token_shapes_in_tool_text() {
+        let secret = format!("sk-{}", "c".repeat(32));
+        let gpus = parse_nvidia_csv(&format!("{secret}, 40, 0, 0, 15\n"));
+        let report = diagnose(FanFacts {
+            kernel: "test".into(),
+            cpu_count: 1,
+            load_1m: 0.1,
+            sensors: SourceCoverage {
+                status: CoverageStatus::Unavailable,
+                detail: "missing".into(),
+            },
+            nvidia_smi: SourceCoverage {
+                status: CoverageStatus::Available,
+                detail: "ok".into(),
+            },
+            hwmon: Vec::new(),
+            gpus,
+            nvidia_module: ModulePresence::Absent,
+            processes: Vec::new(),
+        });
+        let human = format_fan_human(&report);
+        let json = serde_json::to_string(&report).expect("json");
+        assert!(!human.contains(&secret), "fan report kept a fixture secret");
+        assert!(!json.contains(&secret), "fan json kept a fixture secret");
+        assert!(human.contains("[REDACTED]"));
+        assert!(json.contains("[REDACTED]"));
     }
 }
