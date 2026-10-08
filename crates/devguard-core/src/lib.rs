@@ -25,6 +25,7 @@ pub mod ports;
 pub mod redact;
 pub mod remote;
 pub mod runaway;
+pub mod security_scan;
 pub mod security_updates;
 pub mod sensors;
 pub mod slm;
@@ -70,6 +71,10 @@ pub use remote::{
 };
 pub use runaway::{
     format_runaway_human, scan_runaways, RunawayProcess, RunawayReport, RunawayThresholds,
+};
+pub use security_scan::{
+    findings_from, format_security_scan_human, scan_security, Finding, FindingSeverity,
+    SecurityScanReport,
 };
 pub use security_updates::{
     format_security_updates_human, read_security_updates, scan_security_updates,

@@ -85,7 +85,8 @@ pub struct SnapshotCollectors {
 ///
 /// `label` is an ordinary string. `pre-upgrade` and `post-upgrade` have no
 /// special meaning here. `clean` is false when any collector is unavailable
-/// or any collector report is partial.
+/// or any collector report is partial. [`parse_payload`] recomputes `clean`
+/// from that coverage, so a stored `true` cannot mark a partial snapshot clean.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SnapshotPayload {
     pub label: Option<String>,
@@ -164,8 +165,14 @@ pub fn collect_snapshot(label: Option<String>, allowlist: &[String]) -> Snapshot
 }
 
 /// Parse a payload stored in the snapshot table.
+///
+/// `clean` is recomputed from collector coverage. A stored `true` does not
+/// mark the snapshot clean when any collector is unavailable or any collector
+/// report is partial.
 pub fn parse_payload(text: &str) -> Result<SnapshotPayload, serde_json::Error> {
-    serde_json::from_str(text)
+    let mut payload: SnapshotPayload = serde_json::from_str(text)?;
+    payload.clean = coverage_is_clean(&payload);
+    Ok(payload)
 }
 
 /// Newest stored snapshot as `devguard status` reports it.
@@ -373,16 +380,22 @@ pub fn format_diff_human(
     current_id: &str,
     baseline_label: Option<&str>,
     current_label: Option<&str>,
+    baseline_clean: bool,
+    current_clean: bool,
     diff: &SnapshotDiff,
 ) -> String {
+    let baseline_label = baseline_label.unwrap_or("(none)");
+    let current_label = current_label.unwrap_or("(none)");
+    let baseline_clean = yes_no(baseline_clean);
+    let current_clean = yes_no(current_clean);
     let mut out = format!(
         "\
 DevGuard snapshot diff
   baseline: {baseline_id} ({baseline_label})
+  baseline clean: {baseline_clean}
   current: {current_id} ({current_label})
-",
-        baseline_label = baseline_label.unwrap_or("(none)"),
-        current_label = current_label.unwrap_or("(none)"),
+  current clean: {current_clean}
+"
     );
     push_section(&mut out, "Added", &diff.added);
     push_section(&mut out, "Removed", &diff.removed);
@@ -438,32 +451,9 @@ fn assemble_snapshot(label: Option<String>, reports: HostReports) -> SnapshotPay
     let dev_env_status = CollectorAvailability::Available;
     let files_status = status_from(files_inventory_available(&files));
     let health_status = status_from(health_inventory_available(&health));
-    let mut clean = os.clean
-        && packages.clean
-        && units.clean
-        && ports.clean
-        && gpu_id.clean
-        && dev_env.clean
-        && files.clean
-        && health.clean;
-    if [
-        os_status,
-        packages_status,
-        units_status,
-        ports_status,
-        gpu_status,
-        dev_env_status,
-        files_status,
-        health_status,
-    ]
-    .into_iter()
-    .any(|status| status == CollectorAvailability::Unavailable)
-    {
-        clean = false;
-    }
-    SnapshotPayload {
+    let mut payload = SnapshotPayload {
         label: normalize_label(label),
-        clean,
+        clean: false,
         uses_sudo: false,
         installs_packages: false,
         opens_network: false,
@@ -501,7 +491,15 @@ fn assemble_snapshot(label: Option<String>, reports: HostReports) -> SnapshotPay
                 report: health,
             },
         },
-    }
+    };
+    payload.clean = coverage_is_clean(&payload);
+    payload
+}
+
+fn coverage_is_clean(payload: &SnapshotPayload) -> bool {
+    coverage(payload)
+        .iter()
+        .all(|row| row.status == CollectorAvailability::Available && row.clean)
 }
 
 fn coverage(payload: &SnapshotPayload) -> Vec<CoverageRow> {
@@ -996,7 +994,7 @@ mod tests {
         assert!(text.contains("opens a network connection: no\n"));
 
         let mut partial = clean;
-        partial.clean = false;
+        partial.collectors.packages.report.clean = false;
         let partial_text = serde_json::to_string(&partial).expect("json");
         let partial_row = status_from_stored(
             "snap-old".into(),
@@ -1233,6 +1231,140 @@ mod tests {
             .changed
             .iter()
             .all(|entry| entry.key != "collector:packages"));
+    }
+
+    const PRE_UPGRADE: &str = include_str!("../fixtures/snapshots/pre-upgrade.json");
+    const POST_UPGRADE: &str = include_str!("../fixtures/snapshots/post-upgrade.json");
+    const PARTIAL_COVERAGE: &str = include_str!("../fixtures/snapshots/partial-coverage.json");
+
+    #[test]
+    fn upgrade_fixtures_diff_kernel_driver_port_and_package() {
+        let baseline = parse_payload(PRE_UPGRADE).expect("pre-upgrade fixture");
+        let current = parse_payload(POST_UPGRADE).expect("post-upgrade fixture");
+        assert!(baseline.clean);
+        assert!(current.clean);
+        assert!(!baseline.uses_sudo);
+        assert!(!baseline.installs_packages);
+        assert!(!baseline.opens_network);
+        assert!(!current.uses_sudo);
+        assert!(!current.installs_packages);
+        assert!(!current.opens_network);
+
+        let diff = diff_payloads(&baseline, &current);
+        assert!(diff.removed.is_empty());
+        let port = entry_named(&diff.added, "port:tcp:127.0.0.1:11434");
+        assert_eq!(port.fact, "process=ollama");
+        assert_eq!(port.severity, SeverityHint::Warning);
+        assert_fact_is_separate(port);
+
+        let kernel = entry_named(&diff.changed, "os:kernel_release");
+        assert_eq!(kernel.fact, "6.8.0-45-generic -> 7.0.0-38-generic");
+        assert_eq!(kernel.severity, SeverityHint::Warning);
+        assert_fact_is_separate(kernel);
+
+        let driver = entry_named(&diff.changed, "gpu:00000000:01:00.0:driver_version");
+        assert_eq!(driver.fact, "550.90.07 -> 580.95.05");
+        assert_eq!(driver.severity, SeverityHint::Warning);
+        assert_fact_is_separate(driver);
+
+        let package = entry_named(&diff.changed, "package:linux-image-generic:amd64");
+        assert_eq!(package.fact, "6.8.0-45.45 -> 7.0.0-38.38");
+        assert_eq!(package.severity, SeverityHint::Info);
+        assert_fact_is_separate(package);
+        assert!(diff
+            .changed
+            .iter()
+            .all(|entry| entry.key != "package:bash:amd64"));
+
+        let human = format_diff_human(
+            "baseline-pre",
+            "current-post",
+            baseline.label.as_deref(),
+            current.label.as_deref(),
+            baseline.clean,
+            current.clean,
+            &diff,
+        );
+        assert!(human.contains("baseline clean: yes"));
+        assert!(human.contains("current clean: yes"));
+        assert!(human.contains("fact: 6.8.0-45-generic -> 7.0.0-38-generic"));
+        assert!(human.contains("severity: warning"));
+        assert!(!human.contains("fact: warning"));
+    }
+
+    #[test]
+    fn partial_coverage_fixture_is_not_clean_and_diff_does_not_report_it_clean() {
+        let stored: serde_json::Value =
+            serde_json::from_str(PARTIAL_COVERAGE).expect("partial json");
+        assert_eq!(stored["clean"], true);
+        assert_eq!(stored["collectors"]["packages"]["report"]["clean"], false);
+        assert_eq!(
+            stored["collectors"]["packages"]["report"]["updates"]["status"],
+            "unavailable"
+        );
+
+        let baseline = parse_payload(PRE_UPGRADE).expect("pre-upgrade fixture");
+        let current = parse_payload(PARTIAL_COVERAGE).expect("partial fixture");
+        assert!(baseline.clean);
+        assert!(!current.clean);
+        assert!(snapshot_warnings(&current)
+            .iter()
+            .any(|warning| warning == "packages coverage is partial"));
+
+        let diff = diff_payloads(&baseline, &current);
+        assert!(entry_named(&diff.changed, "os:kernel_release")
+            .fact
+            .contains("7.0.0-38-generic"));
+        assert!(
+            entry_named(&diff.changed, "gpu:00000000:01:00.0:driver_version")
+                .fact
+                .contains("580.95.05")
+        );
+        assert_eq!(
+            entry_named(&diff.added, "port:tcp:127.0.0.1:11434").fact,
+            "process=ollama"
+        );
+        assert!(
+            entry_named(&diff.changed, "package:linux-image-generic:amd64")
+                .fact
+                .contains("7.0.0-38.38")
+        );
+        let updates = entry_named(&diff.changed, "packages:updates");
+        assert_eq!(updates.fact, "available -> unavailable");
+        assert_eq!(updates.severity, SeverityHint::Unknown);
+        assert_fact_is_separate(updates);
+        assert!(diff
+            .changed
+            .iter()
+            .all(|entry| entry.key != "collector:packages"));
+
+        let human = format_diff_human(
+            "baseline-pre",
+            "current-partial",
+            baseline.label.as_deref(),
+            current.label.as_deref(),
+            baseline.clean,
+            current.clean,
+            &diff,
+        );
+        assert!(human.contains("baseline clean: yes"));
+        assert!(human.contains("current clean: no"));
+        assert!(!human.contains("current clean: yes"));
+    }
+
+    fn entry_named<'a>(entries: &'a [DiffEntry], key: &str) -> &'a DiffEntry {
+        entries
+            .iter()
+            .find(|entry| entry.key == key)
+            .unwrap_or_else(|| panic!("missing {key}"))
+    }
+
+    fn assert_fact_is_separate(entry: &DiffEntry) {
+        assert_ne!(entry.fact, entry.severity.as_str());
+        assert!(!matches!(
+            entry.fact.as_str(),
+            "info" | "warning" | "critical" | "unknown"
+        ));
     }
 
     fn full_payload(label: &str) -> SnapshotPayload {

@@ -10,6 +10,7 @@ DevGuard observes; it does not remediate by default.
 - Backup credentials stay outside config (engine password file / OS mechanisms).
 - Failures surface as `unavailable` / warnings, never as clean.
 - `security paths` checks only `security.sensitive_path_allowlist`. It reads mode bits and, when the local account database has them, owner and group names. It does not recurse, use sudo, or read file contents. An empty allowlist is not a clean disk scan.
+- `security scan` prints findings from the firewall, path, and security-update checks. Severity is a separate field from the fact. An unavailable source is `unknown` and the scan is not clean. An unfamiliar name is not proof of malware. The command does not use sudo, recurse, read file contents, change firewall rules, or run apt.
 
 ## Downstairs WSL helper
 

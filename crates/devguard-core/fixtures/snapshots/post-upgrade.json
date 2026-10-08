@@ -1,0 +1,252 @@
+{
+  "label": "post-upgrade",
+  "clean": true,
+  "uses_sudo": false,
+  "installs_packages": false,
+  "opens_network": false,
+  "collectors": {
+    "os": {
+      "status": "available",
+      "report": {
+        "uses_sudo": false,
+        "opens_port": false,
+        "collects_packages": false,
+        "clean": true,
+        "kernel_release": {
+          "status": "available",
+          "value": "7.0.0-38-generic"
+        },
+        "boot_id": {
+          "status": "available",
+          "value": "boot-fixture-1"
+        },
+        "uptime_seconds": {
+          "status": "available",
+          "value": 10.0
+        },
+        "hostname_hash": {
+          "status": "available",
+          "value": "hn-0123456789abcdef"
+        }
+      }
+    },
+    "packages": {
+      "status": "available",
+      "report": {
+        "uses_sudo": false,
+        "changes_packages": false,
+        "clean": true,
+        "status": "available",
+        "installed": {
+          "status": "available",
+          "detail": "fixture installed packages"
+        },
+        "updates": {
+          "status": "available",
+          "detail": "fixture apt lists"
+        },
+        "packages": [
+          {
+            "name": "bash",
+            "version": "5.2.21-2ubuntu4",
+            "architecture": "amd64"
+          },
+          {
+            "name": "linux-image-generic",
+            "version": "7.0.0-38.38",
+            "architecture": "amd64"
+          }
+        ],
+        "pending": []
+      }
+    },
+    "units": {
+      "status": "available",
+      "report": {
+        "uses_sudo": false,
+        "starts_units": false,
+        "stops_units": false,
+        "enables_units": false,
+        "disables_units": false,
+        "clean": true,
+        "status": "available",
+        "systemctl": {
+          "status": "available",
+          "detail": "fixture"
+        },
+        "units": [
+          {
+            "name": "ssh.service",
+            "enabled": "enabled",
+            "active": "active",
+            "failed": false
+          }
+        ]
+      }
+    },
+    "ports": {
+      "status": "available",
+      "report": {
+        "opens_port": false,
+        "scans_remote": false,
+        "collects_arguments": false,
+        "clean": true,
+        "ss": {
+          "status": "available",
+          "detail": "fixture"
+        },
+        "sockets": [
+          {
+            "protocol": "tcp",
+            "address": "127.0.0.1",
+            "port": 22,
+            "process": "sshd",
+            "attribution": "present"
+          },
+          {
+            "protocol": "tcp",
+            "address": "127.0.0.1",
+            "port": 11434,
+            "process": "ollama",
+            "attribution": "present"
+          }
+        ],
+        "unparsed_rows": 0
+      }
+    },
+    "gpu_id": {
+      "status": "available",
+      "report": {
+        "uses_sudo": false,
+        "loads_modules": false,
+        "clean": true,
+        "nvidia_smi": {
+          "status": "available",
+          "detail": "fixture"
+        },
+        "gpus": [
+          {
+            "name": {
+              "status": "available",
+              "value": "NVIDIA GeForce RTX 3060"
+            },
+            "driver_version": {
+              "status": "available",
+              "value": "580.95.05"
+            },
+            "pci_bus_id": {
+              "status": "available",
+              "value": "00000000:01:00.0"
+            }
+          }
+        ]
+      }
+    },
+    "dev_env": {
+      "status": "available",
+      "report": {
+        "installs_tools": false,
+        "uses_network": false,
+        "runs_package_audit": false,
+        "clean": true,
+        "tools": [
+          {
+            "name": "rustc",
+            "status": "available",
+            "version_line": "rustc 1.0.0",
+            "detail": "fixture"
+          },
+          {
+            "name": "cargo",
+            "status": "available",
+            "version_line": "cargo 1.0.0",
+            "detail": "fixture"
+          },
+          {
+            "name": "python3",
+            "status": "available",
+            "version_line": "python3 1.0.0",
+            "detail": "fixture"
+          },
+          {
+            "name": "node",
+            "status": "available",
+            "version_line": "node 1.0.0",
+            "detail": "fixture"
+          },
+          {
+            "name": "git",
+            "status": "available",
+            "version_line": "git 1.0.0",
+            "detail": "fixture"
+          },
+          {
+            "name": "gcc",
+            "status": "available",
+            "version_line": "gcc 1.0.0",
+            "detail": "fixture"
+          }
+        ]
+      }
+    },
+    "files": {
+      "status": "available",
+      "report": {
+        "persists_contents": false,
+        "prints_contents": false,
+        "hash_algorithm": "sha256",
+        "clean": true,
+        "files": [
+          {
+            "path": "/etc/example.conf",
+            "status": "available",
+            "size_bytes": 4,
+            "mtime_unix": 1,
+            "hash": "aa",
+            "detail": "fixture"
+          }
+        ]
+      }
+    },
+    "health": {
+      "status": "available",
+      "report": {
+        "uses_sudo": false,
+        "sends_signals": false,
+        "loads_modules": false,
+        "writes_bios": false,
+        "clean": true,
+        "cpu_count": {
+          "status": "available",
+          "value": 4
+        },
+        "memory_used_bytes": {
+          "status": "available",
+          "value": 1
+        },
+        "memory_total_bytes": {
+          "status": "available",
+          "value": 2
+        },
+        "swap_used_bytes": {
+          "status": "available",
+          "value": 0
+        },
+        "disk_free_bytes": {
+          "status": "available",
+          "value": 3
+        },
+        "uptime_seconds": {
+          "status": "available",
+          "value": 10.0
+        },
+        "processes": {
+          "status": "available",
+          "names": [
+            "init"
+          ]
+        }
+      }
+    }
+  }
+}
