@@ -27,6 +27,7 @@ use devguard_core::remote::{
 };
 use devguard_core::runaway::{format_runaway_human, scan_runaways, RunawayThresholds};
 use devguard_core::sensors::{format_sensors_human, scan_sensors};
+use devguard_core::units::{format_units_human, scan_units};
 use devguard_core::watch::parse_watch_interval;
 use devguard_core::DevGuardPaths;
 use tracing_subscriber::EnvFilter;
@@ -137,6 +138,12 @@ enum HealthCommands {
     /// hostname. A missing `/proc` source is unavailable, and that result is
     /// not clean. Does not use sudo, open a port, or collect package lists.
     Os,
+    /// Unit name, enabled state, active state, and whether the unit is failed.
+    ///
+    /// Reads one `systemctl show` listing. Does not start, stop, enable, or
+    /// disable units, and does not use sudo. If `systemctl` is missing or the
+    /// listing is unreadable, the result is unavailable and not clean.
+    Units,
     /// Find a process at 6+ cores for 10 minutes, or holding 12+ GiB RSS.
     ///
     /// Samples CPU for one second. Prints a stop hint and does not send a signal.
@@ -483,6 +490,21 @@ fn run_health(
                 emit_json(&envelope)?;
             } else {
                 emit_human(&format_os_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        HealthCommands::Units => {
+            let report = scan_units();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("health units", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("health units", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_units_human(&report));
             }
             Ok(report.exit_code())
         }

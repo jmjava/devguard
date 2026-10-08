@@ -44,7 +44,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 - [ ] #devguard #m1 SQLite store + migrations (`runs`, `observations`, `snapshots`) under XDG state
 - [ ] #devguard #m1 Collect OS/kernel/boot-id/uptime + privacy-preserving hostname hash
 - [ ] #devguard #m1 Collect APT inventory (+ optional Snap) and pending updates when readable
-- [ ] #devguard #m1 Collect systemd enabled/running/failed units
+- [x] #devguard #m1 Collect systemd enabled/running/failed units
 - [ ] #devguard #m1 Collect listening sockets via `ss` (proto/addr/port/process; missing attribution distinct)
 - [ ] #devguard #m1 Collect NVIDIA driver/GPU + selected PCI/modules for upgrade diffs
 - [ ] #devguard #m1 Collect toolchain versions (rustc/cargo, gcc/clang, java, python, node, git, docker)
