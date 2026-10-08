@@ -150,6 +150,8 @@ fn run_diff(
         current_id: current.id,
         baseline_label: baseline.label,
         current_label: current.label,
+        baseline_clean: baseline_payload.clean,
+        current_clean: current_payload.clean,
         diff,
     };
     if json {
@@ -165,6 +167,8 @@ fn run_diff(
             &data.current_id,
             data.baseline_label.as_deref(),
             data.current_label.as_deref(),
+            data.baseline_clean,
+            data.current_clean,
             &data.diff,
         ));
     }
@@ -214,6 +218,8 @@ struct DiffData {
     current_id: String,
     baseline_label: Option<String>,
     current_label: Option<String>,
+    baseline_clean: bool,
+    current_clean: bool,
     #[serde(flatten)]
     diff: SnapshotDiff,
 }

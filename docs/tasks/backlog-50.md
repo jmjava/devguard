@@ -50,7 +50,7 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 - [ ] #devguard #m1 Collect toolchain versions (rustc/cargo, gcc/clang, java, python, node, git, docker)
 - [x] #devguard #m1 Allowlist config-file hashing (hash+metadata only; never persist secret bytes)
 - [x] #devguard #m1 `snapshot create [--label]` / `list` / `diff` — stable order; severity hints ≠ facts
-- [ ] #devguard #m1 Upgrade fixtures: kernel/driver/port/package drift; partial coverage never marked clean
+- [x] #devguard #m1 Upgrade fixtures: kernel/driver/port/package drift; partial coverage never marked clean
 
 ## D. Health & fan diagnostics (M2) — 6
 
