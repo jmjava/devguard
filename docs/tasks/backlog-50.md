@@ -15,7 +15,7 @@ tags:
 
 Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest.json`.
 
-`[x]` = done · `[ ]` = open · **50 total**
+`[x]` = done · `[ ]` = open · **51 total**
 
 ---
 
@@ -86,9 +86,10 @@ Canonical store: `docs/tasks/`. Reload via [`README.md`](README.md) or `manifest
 - [x] #devguard #m5 Opt-in `dev deps audit` (cargo-audit/npm/pip/maven); network scans explicit only
 - [x] #devguard #m5 Sanitize output/logs so token-like fixture strings never appear
 
-## H. Ops & multi-node (M6–M7) — 4
+## H. Ops & multi-node (M6–M7) — 5
 
-- [ ] #devguard #m6 Opt-in `systemd --user` timers + local alerts/report files + retention dry-run
+- [x] #devguard #m6 Opt-in `systemd --user` timers
+- [ ] #devguard #m6 local alerts/report files + retention dry-run
 - [ ] #devguard #m6 Packaging/release notes + idle-overhead benchmark (no port until user enables)
 - [ ] #devguard #m7 Multi-node PoC design: allowlisted read-only metrics, mTLS, peer allowlist — **no remote shell**
 - [ ] #devguard #m7 AMD ROCm/Halo health provider spike only after NVIDIA path is stable
