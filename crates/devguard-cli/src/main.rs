@@ -16,6 +16,9 @@ use std::path::PathBuf;
 use std::process::ExitCode as StdExitCode;
 
 use clap::{Parser, Subcommand};
+use devguard_core::audit_dotfiles::{format_audit_dotfiles_human, scan_audit_dotfiles};
+use devguard_core::audit_repos::{format_audit_repos_human, scan_audit_repos};
+use devguard_core::audit_summary::{build_audit_summary, format_audit_summary_human};
 use devguard_core::backup_plan::{format_backup_plan_human, plan_backup};
 use devguard_core::config::{BackupConfig, Config, ConfigPaths};
 use devguard_core::dev_deps::{format_deps_audit_human, scan_deps_audit};
@@ -138,6 +141,14 @@ enum Commands {
     Dev {
         #[command(subcommand)]
         action: DevCommands,
+    },
+    /// Backup audit: scan repos, check dotfiles, and produce a health summary.
+    ///
+    /// Read-only. Does not fetch, pull, push, use sudo, read file contents,
+    /// or contact the network.
+    Audit {
+        #[command(subcommand)]
+        action: AuditCommands,
     },
     /// Opt-in systemd --user timer for a later scan.
     ///
@@ -417,6 +428,27 @@ enum BackupCommands {
 }
 
 #[derive(Debug, Subcommand)]
+enum AuditCommands {
+    /// Scan for git repos under common locations and configured paths.
+    ///
+    /// Reports path, branch, dirty status, last commit date, and remote URL.
+    /// Flags repos with no remote, stale uncommitted changes (>7 days),
+    /// and unpushed commits. Does not fetch, pull, push, or use sudo.
+    Repos,
+    /// Check common dotfiles that should be backed up.
+    ///
+    /// Checks `~/.bashrc`, `~/.zshrc`, `~/.gitconfig`, `~/.ssh/config` and
+    /// selected `~/.config/` directories. Reports existence and last-modified
+    /// date only. Never reads or outputs file contents. Does not use sudo.
+    Dotfiles,
+    /// Combined one-page health report: repos + dotfiles + risk score.
+    ///
+    /// Total repos, dirty/local-only counts, dotfiles coverage score (0-100%),
+    /// and top 5 most at-risk items. Does not use sudo or the network.
+    Summary,
+}
+
+#[derive(Debug, Subcommand)]
 enum ConfigCommands {
     /// Create a local config file (no backup until repository is configured)
     Init {
@@ -520,6 +552,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
             SlmCommands::Export(action) => cmd_slm_export::run(cli.json, paths, action),
             SlmCommands::Checklist(action) => cmd_slm_checklist::run(cli.json, paths, action),
         },
+        Commands::Audit { action } => run_audit(cli.json, paths, action),
         Commands::Dev { action } => run_dev(cli.json, paths, action),
         Commands::Schedule { action } => run_schedule(cli.json, paths, action),
         Commands::Backup { action } => run_backup(cli.json, paths, action),
@@ -621,6 +654,69 @@ Next: edit model_dirs / repo paths as needed, then run `devguard doctor`.\n",
             } else {
                 Ok(ExitCode::Partial)
             }
+        }
+    }
+}
+
+fn run_audit(
+    json: bool,
+    paths: &DevGuardPaths,
+    action: AuditCommands,
+) -> Result<ExitCode, devguard_core::DevGuardError> {
+    let config = load_config_optional(&paths.config_file)?;
+    let config_roots = config
+        .as_ref()
+        .map(|c| c.dev.repo_roots.clone())
+        .unwrap_or_default();
+    let git_bin = git_bin()?;
+
+    match action {
+        AuditCommands::Repos => {
+            let report = scan_audit_repos(&git_bin, &config_roots);
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("audit repos", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("audit repos", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_audit_repos_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        AuditCommands::Dotfiles => {
+            let report = scan_audit_dotfiles();
+            let warnings = report.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("audit dotfiles", &report)
+                } else {
+                    JsonEnvelope::success_with_warnings("audit dotfiles", &report, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_audit_dotfiles_human(&report));
+            }
+            Ok(report.exit_code())
+        }
+        AuditCommands::Summary => {
+            let repos_report = scan_audit_repos(&git_bin, &config_roots);
+            let dotfiles_report = scan_audit_dotfiles();
+            let summary = build_audit_summary(&repos_report, &dotfiles_report);
+            let warnings = summary.warnings();
+            if json {
+                let envelope = if warnings.is_empty() {
+                    JsonEnvelope::success("audit summary", &summary)
+                } else {
+                    JsonEnvelope::success_with_warnings("audit summary", &summary, warnings)
+                };
+                emit_json(&envelope)?;
+            } else {
+                emit_human(&format_audit_summary_human(&summary));
+            }
+            Ok(summary.exit_code())
         }
     }
 }

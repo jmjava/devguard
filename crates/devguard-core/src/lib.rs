@@ -1,5 +1,8 @@
 //! DevGuard core library: configuration, errors, JSON envelopes, and collector contracts.
 
+pub mod audit_dotfiles;
+pub mod audit_repos;
+pub mod audit_summary;
 pub mod backup_plan;
 pub mod bracket;
 pub mod collector;
@@ -42,6 +45,17 @@ pub mod thresholds;
 pub mod units;
 pub mod watch;
 
+pub use audit_dotfiles::{
+    format_audit_dotfiles_human, scan_audit_dotfiles, scan_audit_dotfiles_with_home,
+    AuditDotfilesReport, ConfigDirEntry, DotfileEntry, DotfileStatus,
+};
+pub use audit_repos::{
+    format_audit_repos_human, scan_audit_repos, scan_audit_repos_explicit, AuditRepoEntry,
+    AuditReposFlags, AuditReposReport,
+};
+pub use audit_summary::{
+    build_audit_summary, format_audit_summary_human, AuditSummaryReport, RiskItem, RiskSeverity,
+};
 pub use backup_plan::{
     format_backup_plan_human, plan_backup, BackupPlanReport, PlanCoverage, PlannedInclude,
     UnreadablePath,
