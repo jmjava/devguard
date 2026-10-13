@@ -1,6 +1,7 @@
 //! DevGuard CLI entrypoint.
 
 mod cmd_security_diff;
+mod cmd_slm_bracket;
 mod cmd_slm_checklist;
 mod cmd_slm_energy;
 mod cmd_slm_export;
@@ -178,6 +179,8 @@ enum SlmCommands {
     Energy(cmd_slm_energy::SlmCommands),
     #[command(flatten)]
     Run(cmd_slm_run::SlmCommands),
+    #[command(flatten)]
+    Bracket(cmd_slm_bracket::SlmCommands),
     #[command(flatten)]
     Export(cmd_slm_export::SlmCommands),
     #[command(flatten)]
@@ -513,6 +516,7 @@ fn run(cli: Cli) -> Result<ExitCode, devguard_core::DevGuardError> {
         Commands::Slm { action } => match action {
             SlmCommands::Energy(action) => cmd_slm_energy::run(cli.json, action),
             SlmCommands::Run(action) => cmd_slm_run::run(cli.json, paths, action),
+            SlmCommands::Bracket(action) => cmd_slm_bracket::run(cli.json, paths, action),
             SlmCommands::Export(action) => cmd_slm_export::run(cli.json, paths, action),
             SlmCommands::Checklist(action) => cmd_slm_checklist::run(cli.json, paths, action),
         },

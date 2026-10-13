@@ -1,6 +1,7 @@
 //! DevGuard core library: configuration, errors, JSON envelopes, and collector contracts.
 
 pub mod backup_plan;
+pub mod bracket;
 pub mod collector;
 pub mod config;
 pub mod dev_deps;
@@ -44,6 +45,10 @@ pub mod watch;
 pub use backup_plan::{
     format_backup_plan_human, plan_backup, BackupPlanReport, PlanCoverage, PlannedInclude,
     UnreadablePath,
+};
+pub use bracket::{
+    brackets_dir, find_active_bracket, find_latest_bracket, format_bracket_human, load_bracket,
+    save_bracket, BracketRecord, BracketStatus,
 };
 pub use collector::{Collection, CollectionStatus, Collector};
 pub use config::{Config, ConfigError, ConfigPaths};

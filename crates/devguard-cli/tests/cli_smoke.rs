@@ -1819,7 +1819,118 @@ fn slm_help_keeps_host_energy_and_run() {
         .stdout(predicate::str::contains("energy"))
         .stdout(predicate::str::contains("run"))
         .stdout(predicate::str::contains("export"))
-        .stdout(predicate::str::contains("checklist"));
+        .stdout(predicate::str::contains("checklist"))
+        .stdout(predicate::str::contains("bracket"));
+}
+
+// -- slm bracket --------------------------------------------------------------
+
+#[test]
+fn slm_bracket_start_end_show_lifecycle() {
+    let dir = tempdir().unwrap();
+
+    // Start
+    let output = devguard()
+        .args([
+            "--json",
+            "slm",
+            "bracket",
+            "start",
+            "--label",
+            "test-bracket",
+        ])
+        .env("HOME", dir.path())
+        .output()
+        .expect("bracket start");
+    assert!(
+        output.status.success(),
+        "start failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let start_val: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(start_val["command"], "slm bracket start");
+    assert_eq!(start_val["ok"], true);
+    assert_eq!(start_val["data"]["label"], "test-bracket");
+
+    // Verify a bracket dir was created under the temp HOME
+    let brackets_dir = dir.path().join(".local/share/devguard/brackets");
+    assert!(brackets_dir.exists());
+
+    // End
+    let output = devguard()
+        .args(["--json", "slm", "bracket", "end"])
+        .env("HOME", dir.path())
+        .output()
+        .expect("bracket end");
+    assert!(
+        output.status.success(),
+        "end failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let end_val: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(end_val["command"], "slm bracket end");
+    assert_eq!(end_val["ok"], true);
+    assert_eq!(end_val["data"]["status"], "completed");
+    assert!(end_val["data"]["duration_s"].is_number());
+
+    // Show
+    let output = devguard()
+        .args(["--json", "slm", "bracket", "show"])
+        .env("HOME", dir.path())
+        .output()
+        .expect("bracket show");
+    assert!(
+        output.status.success(),
+        "show failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let show_val: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(show_val["command"], "slm bracket show");
+    assert_eq!(show_val["data"]["label"], "test-bracket");
+    assert_eq!(show_val["data"]["status"], "completed");
+}
+
+#[test]
+fn slm_bracket_end_without_start_fails() {
+    let dir = tempdir().unwrap();
+    let output = devguard()
+        .args(["--json", "slm", "bracket", "end"])
+        .env("HOME", dir.path())
+        .output()
+        .expect("bracket end no active");
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let val: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(val["ok"], false);
+    assert!(val["error"].as_str().unwrap().contains("No active bracket"));
+}
+
+#[test]
+fn slm_bracket_show_empty_fails() {
+    let dir = tempdir().unwrap();
+    let output = devguard()
+        .args(["--json", "slm", "bracket", "show"])
+        .env("HOME", dir.path())
+        .output()
+        .expect("bracket show empty");
+    assert_eq!(output.status.code(), Some(3));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let val: serde_json::Value = serde_json::from_str(&stdout).expect("json");
+    assert_eq!(val["ok"], false);
+}
+
+#[test]
+fn slm_bracket_help_shows_subcommands() {
+    devguard()
+        .args(["slm", "bracket", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("start"))
+        .stdout(predicate::str::contains("end"))
+        .stdout(predicate::str::contains("show"));
 }
 
 #[test]
