@@ -334,7 +334,7 @@ fn discover_repos(root: &Path, repos: &mut Vec<PathBuf>, seen: &mut HashSet<Path
         if visits > MAX_VISITS || repos.len() >= MAX_REPOS {
             return;
         }
-        if dir.join(".git").symlink_metadata().is_ok() {
+        if is_git_repo_marker(&dir.join(".git")) {
             if let Ok(canonical) = std::fs::canonicalize(&dir) {
                 if seen.insert(canonical.clone()) {
                     repos.push(canonical);
@@ -362,6 +362,34 @@ fn discover_repos(root: &Path, repos: &mut Vec<PathBuf>, seen: &mut HashSet<Path
             stack.push((entry.path(), depth + 1));
         }
     }
+}
+
+/// A directory named `.git` is a repository. A file counts only when it is a
+/// `gitdir:` pointer, which is how a linked worktree marks itself.
+fn is_git_repo_marker(marker: &Path) -> bool {
+    match std::fs::metadata(marker) {
+        Ok(meta) if meta.is_dir() => true,
+        Ok(meta) if meta.is_file() => gitdir_pointer(marker),
+        _ => false,
+    }
+}
+
+fn gitdir_pointer(path: &Path) -> bool {
+    let mut file = match std::fs::File::open(path) {
+        Ok(file) => file,
+        Err(_) => return false,
+    };
+    let mut buf = [0u8; 64];
+    let n = match file.read(&mut buf) {
+        Ok(n) => n,
+        Err(_) => return false,
+    };
+    let text = String::from_utf8_lossy(&buf[..n]);
+    let line = text.lines().next().unwrap_or("");
+    if !line.starts_with("gitdir:") {
+        return false;
+    }
+    true
 }
 
 fn inspect_repo(git_bin: &Path, repo: &Path, now: DateTime<Utc>) -> AuditRepoEntry {
@@ -640,6 +668,37 @@ mod tests {
         assert!(!report.repos[0].has_remote);
         assert_eq!(report.local_only_count, 1);
         assert_eq!(report.flags.local_only.len(), 1);
+    }
+
+    #[test]
+    fn a_file_that_is_not_a_gitdir_is_not_a_repository() {
+        let scratch = tempfile::tempdir().unwrap();
+        let root = scratch.path().join("scanroot");
+        let junk = root.join("not-a-repo");
+        std::fs::create_dir_all(&junk).unwrap();
+        std::fs::write(junk.join(".git"), "not a gitdir\n").unwrap();
+        let real = root.join("real");
+        init_repo(&real);
+        let linked = root.join("linked");
+        git(
+            &real,
+            &[
+                "worktree",
+                "add",
+                "--detach",
+                linked.to_str().expect("utf8"),
+            ],
+        );
+        let report = scan_audit_repos_explicit(Path::new("git"), &[root]);
+        assert!(
+            report
+                .repos
+                .iter()
+                .all(|repo| !repo.path.contains("not-a-repo")),
+            "{report:?}"
+        );
+        assert!(report.repos.iter().any(|repo| repo.path.contains("linked")));
+        assert!(report.repos.iter().any(|repo| repo.path.contains("/real")));
     }
 
     #[test]
