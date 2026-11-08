@@ -215,7 +215,8 @@ fn check_config_dir(path: &Path, display: &str, now: DateTime<Utc>) -> ConfigDir
                 .map(|d| {
                     let mtime_utc = DateTime::<Utc>::from(SystemTime::UNIX_EPOCH + d);
                     let age = now.signed_duration_since(mtime_utc);
-                    age.num_days() <= RECENTLY_MODIFIED_DAYS
+                    // A timestamp ahead of now is not a recent edit.
+                    age.num_milliseconds() >= 0 && age.num_days() <= RECENTLY_MODIFIED_DAYS
                 })
                 .unwrap_or(false);
             ConfigDirEntry {
@@ -302,6 +303,20 @@ mod tests {
         assert_eq!(report.present_count, 2);
         assert_eq!(report.checked_count, 4);
         assert_eq!(report.coverage_percent, 50);
+    }
+
+    #[test]
+    fn a_future_config_mtime_is_not_recent() {
+        let home = tempfile::tempdir().unwrap();
+        let config = home.path().join(".config").join("devguard");
+        std::fs::create_dir_all(&config).unwrap();
+        let earlier = Utc::now() - chrono::Duration::hours(2);
+        let future = check_config_dir(&config, "~/.config/devguard", earlier);
+        assert!(future.exists);
+        assert!(future.last_modified.is_some());
+        assert!(!future.recently_modified);
+        let current = check_config_dir(&config, "~/.config/devguard", Utc::now());
+        assert!(current.recently_modified);
     }
 
     #[test]
