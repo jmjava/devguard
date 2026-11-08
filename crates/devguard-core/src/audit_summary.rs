@@ -256,7 +256,7 @@ mod tests {
                 .collect(),
             unpushed: repos
                 .iter()
-                .filter(|r| r.unpushed_commits.map_or(false, |c| c > 0))
+                .filter(|r| r.unpushed_commits.is_some_and(|c| c > 0))
                 .map(|r| r.path.clone())
                 .collect(),
         };

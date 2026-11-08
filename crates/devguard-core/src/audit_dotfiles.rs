@@ -187,8 +187,9 @@ fn expand_home(raw: &str, home: &Path) -> PathBuf {
 }
 
 fn check_dotfile(path: &Path, display: &str) -> DotfileEntry {
-    match std::fs::symlink_metadata(path) {
-        Ok(meta) => {
+    // Follow a symlink so a link to a file still counts. A directory does not.
+    match std::fs::metadata(path) {
+        Ok(meta) if meta.is_file() => {
             let mtime = meta.modified().ok().and_then(system_time_to_rfc3339);
             DotfileEntry {
                 path: display.to_string(),
@@ -196,7 +197,7 @@ fn check_dotfile(path: &Path, display: &str) -> DotfileEntry {
                 last_modified: mtime,
             }
         }
-        Err(_) => DotfileEntry {
+        _ => DotfileEntry {
             path: display.to_string(),
             status: DotfileStatus::Missing,
             last_modified: None,
@@ -257,6 +258,26 @@ mod tests {
             .expect("bashrc entry");
         assert_eq!(bashrc.status, DotfileStatus::Present);
         assert!(bashrc.last_modified.is_some());
+    }
+
+    #[test]
+    fn a_directory_is_not_a_present_dotfile() {
+        let home = tempfile::tempdir().unwrap();
+        std::fs::create_dir(home.path().join(".bashrc")).unwrap();
+        std::fs::write(home.path().join(".gitconfig"), "[user]\n").unwrap();
+        let report = scan_audit_dotfiles_with_home(home.path());
+        let bashrc = report
+            .dotfiles
+            .iter()
+            .find(|d| d.path == "~/.bashrc")
+            .expect("bashrc entry");
+        let gitconfig = report
+            .dotfiles
+            .iter()
+            .find(|d| d.path == "~/.gitconfig")
+            .expect("gitconfig entry");
+        assert_eq!(bashrc.status, DotfileStatus::Missing);
+        assert_eq!(gitconfig.status, DotfileStatus::Present);
     }
 
     #[test]
